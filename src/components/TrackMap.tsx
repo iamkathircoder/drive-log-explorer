@@ -24,6 +24,8 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;
+    fitted.current = false;
+    marker.current = null;
     return () => { m.remove(); map.current = null; };
   }, []);
 
