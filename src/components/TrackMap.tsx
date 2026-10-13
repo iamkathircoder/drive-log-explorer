@@ -24,6 +24,8 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;
+    fitted.current = false;
+    marker.current = null;
     return () => { m.remove(); map.current = null; };
   }, []);
 
@@ -39,7 +41,11 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     }
     L.circleMarker([points[0]!.lat, points[0]!.lon], { radius: 6, color: "#fff", fillColor: "#22c55e", fillOpacity: 1, weight: 2 }).addTo(g);
     if (!current) L.circleMarker([points.at(-1)!.lat, points.at(-1)!.lon], { radius: 6, color: "#fff", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }).addTo(g);
-    if (!follow && !fitted.current) { m.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lon])), { padding: [30, 30] }); fitted.current = true; }
+    if (!follow && !fitted.current) {
+      fitted.current = true;
+      const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lon]));
+      setTimeout(() => { m.invalidateSize(); m.fitBounds(bounds, { padding: [30, 30] }); }, 100);
+    }
   }, [points, colorMode, follow, current]);
 
   useEffect(() => {

@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Download, Trash2 } from "lucide-react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ProfileBars } from "@/components/ProfileBars";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
 import { deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
@@ -22,7 +23,7 @@ const tip = { contentStyle: { background: "var(--color-popover)", border: "1px s
 
 function TrackDetail() {
   const { id } = Route.useParams();
-  const { tracks, settings: { units: u } } = useRecorder();
+  const { tracks, loaded, settings: { units: u } } = useRecorder();
   const nav = useNavigate();
   const t = tracks.find((x) => x.id === id);
   const [mode, setMode] = useState<"speed" | "elevation">("elevation");
@@ -37,6 +38,7 @@ function TrackDetail() {
     };
   }, [t, u]);
 
+  if (!loaded) return <div className="p-6 text-center text-muted-foreground">Loading…</div>;
   if (!t || !data) return <div className="p-6 text-center text-muted-foreground">Track not found. <Link to="/tracks" className="text-primary underline">Back to tracks</Link></div>;
   const { s } = data;
   const slug = t.name.replace(/[^\w-]+/g, "_");
@@ -71,27 +73,7 @@ function TrackDetail() {
         <Stat l="Steepest" v={`${s.maxGrade.toFixed(1)}/${s.minGrade.toFixed(1)}`} un="%" />
       </div>
 
-      <Chart title={`Elevation (${eleUnit(u)})`}>
-        <AreaChart data={data.chart}>
-          <defs><linearGradient id="ge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--color-chart-2)" stopOpacity={0.6} /><stop offset="1" stopColor="var(--color-chart-2)" stopOpacity={0} /></linearGradient></defs>
-          <CartesianGrid stroke="var(--color-border)" vertical={false} />
-          <XAxis dataKey="d" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit={distUnit(u)} />
-          <YAxis domain={["auto", "auto"]} width={40} tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} />
-          <Tooltip {...tip} />
-          <Area type="monotone" dataKey="ele" stroke="var(--color-chart-2)" fill="url(#ge)" strokeWidth={2} connectNulls />
-        </AreaChart>
-      </Chart>
-
-      <Chart title={`Speed (${speedUnit(u)})`}>
-        <AreaChart data={data.chart}>
-          <defs><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--color-chart-1)" stopOpacity={0.6} /><stop offset="1" stopColor="var(--color-chart-1)" stopOpacity={0} /></linearGradient></defs>
-          <CartesianGrid stroke="var(--color-border)" vertical={false} />
-          <XAxis dataKey="d" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit={distUnit(u)} />
-          <YAxis width={40} tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} />
-          <Tooltip {...tip} />
-          <Area type="monotone" dataKey="speed" stroke="var(--color-chart-1)" fill="url(#gs)" strokeWidth={2} />
-        </AreaChart>
-      </Chart>
+      <ProfileBars points={t.points} units={u} bars={48} />
 
       <Chart title={`Slope breakdown (${distUnit(u)} per grade)`}>
         <BarChart data={data.slopes}>
