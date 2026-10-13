@@ -34,9 +34,10 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     const vals = points.map((p, i) => colorMode === "speed" ? (p.speed ?? (i ? 0 : 0)) : (p.ele ?? 0));
     const min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
     for (let i = 1; i < points.length; i++) {
-      L.polyline([[points[i - 1].lat, points[i - 1].lon], [points[i].lat, points[i].lon]], { color: ramp((vals[i] - min) / span), weight: 5, opacity: 0.95 }).addTo(g);
+      const a = points[i - 1]!, b = points[i]!;
+      L.polyline([[a.lat, a.lon], [b.lat, b.lon]], { color: ramp((vals[i]! - min) / span), weight: 5, opacity: 0.95 }).addTo(g);
     }
-    L.circleMarker([points[0].lat, points[0].lon], { radius: 6, color: "#fff", fillColor: "#22c55e", fillOpacity: 1, weight: 2 }).addTo(g);
+    L.circleMarker([points[0]!.lat, points[0]!.lon], { radius: 6, color: "#fff", fillColor: "#22c55e", fillOpacity: 1, weight: 2 }).addTo(g);
     if (!current) L.circleMarker([points.at(-1)!.lat, points.at(-1)!.lon], { radius: 6, color: "#fff", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }).addTo(g);
     if (!follow && !fitted.current) { m.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lon])), { padding: [30, 30] }); fitted.current = true; }
   }, [points, colorMode, follow, current]);

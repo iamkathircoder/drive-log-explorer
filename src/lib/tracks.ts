@@ -36,13 +36,13 @@ export function profile(pts: TrackPoint[]): Profile {
   return pts.map((p, i) => {
     let speed = p.speed ?? 0, grade = 0;
     if (i > 0) {
-      const q = pts[i - 1], seg = haversine(q, p), dt = (p.t - q.t) / 1000;
+      const q = pts[i - 1]!, seg = haversine(q, p), dt = (p.t - q.t) / 1000;
       d += seg;
       if (p.speed == null && dt > 0) speed = seg / dt;
       // grade over ~ last 30 m window for stability
       let j = i - 1, run = seg;
-      while (j > 0 && run < 30) { run += haversine(pts[j - 1], pts[j]); j--; }
-      if (run > 5 && p.ele != null && pts[j].ele != null) grade = ((p.ele - pts[j].ele!) / run) * 100;
+      while (j > 0 && run < 30) { run += haversine(pts[j - 1]!, pts[j]!); j--; }
+      if (run > 5 && p.ele != null && pts[j]!.ele != null) grade = ((p.ele - pts[j]!.ele!) / run) * 100;
     }
     return { d, ele: p.ele, speed, grade: Math.max(-40, Math.min(40, grade)), t: p.t };
   });
@@ -51,12 +51,12 @@ export function profile(pts: TrackPoint[]): Profile {
 export function stats(pts: TrackPoint[]) {
   const pr = profile(pts);
   const distance = pr.at(-1)?.d ?? 0;
-  const duration = pts.length > 1 ? (pts.at(-1)!.t - pts[0].t) / 1000 : 0;
+  const duration = pts.length > 1 ? (pts.at(-1)!.t - pts[0]!.t) / 1000 : 0;
   const maxSpeed = pr.reduce((m, p) => Math.max(m, p.speed), 0);
   const avgSpeed = duration > 0 ? distance / duration : 0;
   let gain = 0, loss = 0, minEle = Infinity, maxEle = -Infinity;
   for (let i = 0; i < pts.length; i++) {
-    const e = pts[i].ele; if (e == null) continue;
+    const e = pts[i]!.ele; if (e == null) continue;
     minEle = Math.min(minEle, e); maxEle = Math.max(maxEle, e);
     const prev = pts[i - 1]?.ele; if (prev != null) { const de = e - prev; if (de > 0) gain += de; else loss -= de; }
   }
@@ -72,7 +72,7 @@ export function slopeBreakdown(pts: TrackPoint[]) {
     { label: "-3 to 3%", min: -3, max: 3 }, { label: "3 to 8%", min: 3, max: 8 }, { label: "> 8%", min: 8, max: Infinity },
   ].map((b) => ({ ...b, meters: 0 }));
   for (let i = 1; i < pr.length; i++) {
-    const seg = pr[i].d - pr[i - 1].d, g = pr[i].grade;
+    const seg = pr[i]!.d - pr[i - 1]!.d, g = pr[i]!.grade;
     const b = bins.find((x) => g >= x.min && g < x.max); if (b) b.meters += seg;
   }
   return bins;
@@ -113,10 +113,10 @@ export function parseTrackFile(text: string, filename: string): Track {
     });
   } else {
     const c = doc.querySelector("coordinates")?.textContent?.trim();
-    if (c) points = c.split(/\s+/).map((s, i) => { const [lon, lat, ele] = s.split(",").map(Number); return { lat, lon, ele: ele ?? null, t: base + i * 1000, speed: null, acc: null }; });
+    if (c) points = c.split(/\s+/).map((s, i) => { const [lon = 0, lat = 0, ele] = s.split(",").map(Number); return { lat, lon, ele: ele ?? null, t: base + i * 1000, speed: null, acc: null }; });
   }
   if (points.length < 2) throw new Error("No track points found in file");
-  return { id: crypto.randomUUID(), name, createdAt: points[0].t, points };
+  return { id: crypto.randomUUID(), name, createdAt: points[0]!.t, points };
 }
 export function download(name: string, content: string, mime: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }));

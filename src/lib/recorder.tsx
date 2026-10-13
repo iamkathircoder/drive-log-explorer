@@ -79,7 +79,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   const stop = (name?: string) => {
     const pts = points; discard();
     if (pts.length < 2) return null;
-    const t: Track = { id: crypto.randomUUID(), name: name || `Drive ${new Date(pts[0].t).toLocaleString()}`, createdAt: pts[0].t, points: pts };
+    const t: Track = { id: crypto.randomUUID(), name: name || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts };
     saveTrack(t); return t;
   };
 
