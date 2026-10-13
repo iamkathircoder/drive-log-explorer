@@ -24,7 +24,7 @@ const tip = { contentStyle: { background: "var(--color-popover)", border: "1px s
 
 function TrackDetail() {
   const { id } = Route.useParams();
-  const { tracks, loaded, settings: { units: u } } = useRecorder();
+  const { tracks, loaded, settings } = useRecorder(); const u = settings.units;
   const nav = useNavigate();
   const t = tracks.find((x) => x.id === id);
   const [mode, setMode] = useState<"speed" | "elevation">("elevation");
@@ -32,7 +32,6 @@ function TrackDetail() {
   const [name, setName] = useState("");
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
-  const { settings } = useRecorder();
   const data = useMemo(() => {
     if (!t) return null;
     const pr = profile(t.points);
