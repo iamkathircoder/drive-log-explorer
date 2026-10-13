@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Pause, Play, Square, Sun, SatelliteDish, X } from "lucide-react";
 import { toast } from "sonner";
+import { ProfileBars } from "@/components/ProfileBars";
 import { useRecorder } from "@/lib/recorder";
 import { distUnit, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, speedUnit, stats } from "@/lib/tracks";
 
@@ -59,7 +60,9 @@ function Cockpit() {
         <Readout label="Points" value={r.points.length.toString()} />
       </div>
 
-      <div className="mt-auto flex gap-3 pt-2">
+      {r.status !== "idle" && <ProfileBars points={r.points} units={u} bars={30} tabs />}
+
+      <div className="sticky bottom-20 mt-auto flex gap-3 bg-background pt-2">
         {r.status === "idle" && (
           <button onClick={r.start} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold uppercase tracking-wide text-primary-foreground active:scale-[.98]"><Play className="h-6 w-6" />Start drive</button>
         )}
