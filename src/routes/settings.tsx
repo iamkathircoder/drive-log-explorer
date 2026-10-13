@@ -45,6 +45,15 @@ function SettingsPage() {
         </label>
       </Group>
 
+      <Group title="GPS data quality">
+        <p className="mb-2 text-sm text-muted-foreground">Ignore fixes less accurate than</p>
+        <Seg options={[0, 15, 30, 50].map((d): [string, string] => [String(d), d ? `${d}m` : "Off"])} value={String(settings.maxAccuracy)} onChange={(v) => set({ maxAccuracy: +v })} />
+        <label className="mt-4 flex items-center justify-between">
+          <span><span className="block font-medium">Clean & smooth on save</span><span className="text-xs text-muted-foreground">Removes GPS jumps, smooths elevation and speed</span></span>
+          <Switch checked={settings.smoothOnSave} onCheckedChange={(c) => set({ smoothOnSave: c })} />
+        </label>
+      </Group>
+
       <Group title="Storage">
         <div className="flex justify-between text-sm"><span>Saved tracks</span><span className="font-[family-name:var(--font-mono)]">{tracks.length}</span></div>
         <div className="mt-1 flex justify-between text-sm"><span>Space used</span><span className="font-[family-name:var(--font-mono)]">{(bytes / 1024).toFixed(1)} KB</span></div>

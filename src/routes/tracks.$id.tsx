@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Mountain, Pencil, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProfileBars } from "@/components/ProfileBars";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
-import { deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
+import { cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
 
 export const Route = createFileRoute("/tracks/$id")({
   head: () => ({
@@ -23,10 +24,14 @@ const tip = { contentStyle: { background: "var(--color-popover)", border: "1px s
 
 function TrackDetail() {
   const { id } = Route.useParams();
-  const { tracks, loaded, settings: { units: u } } = useRecorder();
+  const { tracks, loaded, settings } = useRecorder(); const u = settings.units;
   const nav = useNavigate();
   const t = tracks.find((x) => x.id === id);
   const [mode, setMode] = useState<"speed" | "elevation">("elevation");
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [memo, setMemo] = useState("");
+  const [busy, setBusy] = useState(false);
   const data = useMemo(() => {
     if (!t) return null;
     const pr = profile(t.points);
@@ -53,6 +58,22 @@ function TrackDetail() {
         </div>
         <button aria-label="Delete" onClick={() => { if (confirm("Delete this track?")) { deleteTrack(t.id); nav({ to: "/tracks" }); } }} className="rounded-lg bg-secondary p-2 text-destructive"><Trash2 className="h-5 w-5" /></button>
       </header>
+
+      {editing ? (
+        <section className="space-y-2 rounded-xl border border-border bg-card p-3">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="h-11 w-full rounded-lg border border-border bg-background px-3" />
+          <textarea value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="Memo" rows={4} className="w-full rounded-lg border border-border bg-background px-3 py-2" />
+          <div className="flex gap-2">
+            <button onClick={() => setEditing(false)} className="h-10 flex-1 rounded-lg bg-secondary font-semibold">Cancel</button>
+            <button onClick={() => { updateTrack(t.id, { name: name.trim() || t.name, memo: memo.trim() || undefined }); setEditing(false); toast.success("Track updated"); }} className="h-10 flex-1 rounded-lg bg-primary font-semibold text-primary-foreground">Save</button>
+          </div>
+        </section>
+      ) : (
+        <button onClick={() => { setName(t.name); setMemo(t.memo ?? ""); setEditing(true); }} className="flex w-full items-start gap-2 rounded-xl border border-border bg-card p-3 text-left">
+          <p className={`flex-1 whitespace-pre-wrap text-sm ${t.memo ? "" : "text-muted-foreground"}`}>{t.memo || "Add a memo…"}</p>
+          <Pencil className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
 
       <div className="relative h-56 overflow-hidden rounded-xl border border-border">
         <LazyMap points={t.points} follow={false} colorMode={mode} />
@@ -84,6 +105,16 @@ function TrackDetail() {
           <Bar dataKey="dist" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </Chart>
+
+      <section className="space-y-2 rounded-xl border border-border bg-card p-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fix GPS data</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <button disabled={busy} onClick={() => { const pts = cleanTrack(t.points, settings.maxAccuracy); updateTrack(t.id, { points: pts, raw: t.raw ?? t.points }); toast.success(`Cleaned: ${t.points.length - pts.length} bad points removed, smoothed`); }} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-secondary text-sm font-semibold"><Sparkles className="h-4 w-4" />Clean & smooth</button>
+          <button disabled={busy} onClick={async () => { setBusy(true); try { const pts = await correctElevation(t.points); updateTrack(t.id, { points: pts, raw: t.raw ?? t.points, eleCorrected: true }); toast.success("Elevation corrected from terrain data"); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); } setBusy(false); }} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-secondary text-sm font-semibold"><Mountain className="h-4 w-4" />{busy ? "Correcting…" : "Correct elevation"}</button>
+        </div>
+        {t.raw && <button onClick={() => { updateTrack(t.id, { points: t.raw!, raw: undefined, eleCorrected: false }); toast("Restored original GPS data"); }} className="flex w-full items-center justify-center gap-2 py-1 text-xs text-muted-foreground"><RotateCcw className="h-3 w-3" />Restore original recording</button>}
+        <p className="text-[11px] text-muted-foreground">{t.eleCorrected ? "Elevation uses terrain data. " : ""}Correct elevation needs internet.</p>
+      </section>
 
       <div className="grid grid-cols-2 gap-3">
         <button onClick={() => download(`${slug}.gpx`, toGPX(t), "application/gpx+xml")} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground"><Download className="h-4 w-4" />Export GPX</button>

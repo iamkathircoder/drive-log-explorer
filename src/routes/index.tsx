@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pause, Play, Square, Sun, SatelliteDish, X } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileBars } from "@/components/ProfileBars";
@@ -27,8 +27,13 @@ function Cockpit() {
   const speed = fmtSpeed(r.current?.speed ?? 0, u);
   const ele = r.current?.ele;
 
-  const onStop = () => {
-    const t = r.stop();
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [memo, setMemo] = useState("");
+  const onStop = () => { if (r.status === "recording") r.pause(); setName(""); setMemo(""); setSaving(true); };
+  const onSave = () => {
+    setSaving(false);
+    const t = r.stop(name, memo);
     if (t) { toast.success("Drive saved"); nav({ to: "/tracks/$id", params: { id: t.id } }); }
     else toast("Drive too short to save");
   };
@@ -79,6 +84,20 @@ function Cockpit() {
           <button onClick={onStop} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive text-lg font-semibold uppercase text-destructive-foreground"><Square className="h-5 w-5" />Stop & save</button>
         )}
       </div>
+
+      {saving && (
+        <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-background/80 p-4 sm:items-center">
+          <div className="w-full max-w-md space-y-3 rounded-2xl border border-border bg-card p-4">
+            <h2 className="font-semibold">Save drive</h2>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className="h-11 w-full rounded-lg border border-border bg-background px-3" />
+            <textarea value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="Memo — road, weather, notes…" rows={4} className="w-full rounded-lg border border-border bg-background px-3 py-2" />
+            <div className="flex gap-2">
+              <button onClick={() => setSaving(false)} className="h-11 flex-1 rounded-lg bg-secondary font-semibold">Back</button>
+              <button onClick={onSave} className="h-11 flex-1 rounded-lg bg-primary font-semibold text-primary-foreground">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

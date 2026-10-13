@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { haversine, loadSettings, loadTracks, saveTrack, type Settings, type Track, type TrackPoint } from "./tracks";
+import { cleanTrack, haversine, loadSettings, loadTracks, saveTrack, type Settings, type Track, type TrackPoint } from "./tracks";
 
 type Status = "idle" | "recording" | "paused";
 type Ctx = {
   status: Status; points: TrackPoint[]; current: TrackPoint | null; error: string | null; wakeLock: boolean;
   elapsed: number; loaded: boolean; settings: Settings; tracks: Track[];
-  start: () => void; pause: () => void; resume: () => void; stop: (name?: string) => Track | null; discard: () => void;
+  start: () => void; pause: () => void; resume: () => void; stop: (name?: string, memo?: string) => Track | null; discard: () => void;
 };
 const RecorderCtx = createContext<Ctx | null>(null);
 
@@ -43,6 +43,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
         const p: TrackPoint = { lat: pos.coords.latitude, lon: pos.coords.longitude, ele: pos.coords.altitude, t: pos.timestamp, speed: pos.coords.speed, acc: pos.coords.accuracy };
         setCurrent(p);
         if (statusRef.current !== "recording") return;
+        if (settings.maxAccuracy > 0 && p.acc != null && p.acc > settings.maxAccuracy) return;
         if (p.t - lastTs.current < settings.intervalMs - 50) return;
         setPoints((prev) => {
           const last = prev.at(-1);
@@ -56,7 +57,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     );
     watchId.current = id;
     return () => navigator.geolocation.clearWatch(id);
-  }, [settings.highAccuracy, settings.intervalMs, settings.minDistance]);
+  }, [settings.highAccuracy, settings.intervalMs, settings.minDistance, settings.maxAccuracy]);
 
   useEffect(() => {
     if (status !== "recording") return;
@@ -77,10 +78,11 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   const pause = () => { accum.current += Date.now() - segStart.current; setStatus("paused"); releaseLock(); };
   const resume = () => { segStart.current = Date.now(); setStatus("recording"); acquireLock(); };
   const discard = () => { setStatus("idle"); setPoints([]); setElapsed(0); releaseLock(); };
-  const stop = (name?: string) => {
-    const pts = points; discard();
-    if (pts.length < 2) return null;
-    const t: Track = { id: crypto.randomUUID(), name: name || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts };
+  const stop = (name?: string, memo?: string) => {
+    const raw = points; discard();
+    if (raw.length < 2) return null;
+    const pts = settings.smoothOnSave ? cleanTrack(raw, settings.maxAccuracy) : raw;
+    const t: Track = { id: crypto.randomUUID(), name: name?.trim() || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts, memo: memo?.trim() || undefined, raw: pts !== raw ? raw : undefined };
     saveTrack(t); return t;
   };
 
