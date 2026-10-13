@@ -1,5 +1,5 @@
 export type TrackPoint = { lat: number; lon: number; ele: number | null; t: number; speed: number | null; acc: number | null };
-export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string; raw?: TrackPoint[]; eleCorrected?: boolean };
+export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string | undefined; raw?: TrackPoint[] | undefined; eleCorrected?: boolean };
 export type Units = "metric" | "imperial";
 export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean };
 
