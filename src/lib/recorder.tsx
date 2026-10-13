@@ -4,7 +4,7 @@ import { haversine, loadSettings, loadTracks, saveTrack, type Settings, type Tra
 type Status = "idle" | "recording" | "paused";
 type Ctx = {
   status: Status; points: TrackPoint[]; current: TrackPoint | null; error: string | null; wakeLock: boolean;
-  elapsed: number; settings: Settings; tracks: Track[];
+  elapsed: number; loaded: boolean; settings: Settings; tracks: Track[];
   start: () => void; pause: () => void; resume: () => void; stop: (name?: string) => Track | null; discard: () => void;
 };
 const RecorderCtx = createContext<Ctx | null>(null);
@@ -18,6 +18,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [tracks, setTracks] = useState<Track[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const watchId = useRef<number | null>(null);
   const lock = useRef<any>(null);
   const statusRef = useRef<Status>("idle");
@@ -27,7 +28,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   statusRef.current = status;
 
   useEffect(() => {
-    setSettings(loadSettings()); setTracks(loadTracks());
+    setSettings(loadSettings()); setTracks(loadTracks()); setLoaded(true);
     const s = () => setSettings(loadSettings()), t = () => setTracks(loadTracks());
     window.addEventListener("drivelog-settings", s); window.addEventListener("drivelog-tracks", t);
     return () => { window.removeEventListener("drivelog-settings", s); window.removeEventListener("drivelog-tracks", t); };
@@ -83,7 +84,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     saveTrack(t); return t;
   };
 
-  return <RecorderCtx.Provider value={{ status, points, current, error, wakeLock, elapsed, settings, tracks, start, pause, resume, stop, discard }}>{children}</RecorderCtx.Provider>;
+  return <RecorderCtx.Provider value={{ status, points, current, error, wakeLock, elapsed, loaded, settings, tracks, start, pause, resume, stop, discard }}>{children}</RecorderCtx.Provider>;
 }
 
 export function useRecorder() {

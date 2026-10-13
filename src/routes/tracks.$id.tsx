@@ -23,7 +23,7 @@ const tip = { contentStyle: { background: "var(--color-popover)", border: "1px s
 
 function TrackDetail() {
   const { id } = Route.useParams();
-  const { tracks, settings: { units: u } } = useRecorder();
+  const { tracks, loaded, settings: { units: u } } = useRecorder();
   const nav = useNavigate();
   const t = tracks.find((x) => x.id === id);
   const [mode, setMode] = useState<"speed" | "elevation">("elevation");
@@ -38,6 +38,7 @@ function TrackDetail() {
     };
   }, [t, u]);
 
+  if (!loaded) return <div className="p-6 text-center text-muted-foreground">Loading…</div>;
   if (!t || !data) return <div className="p-6 text-center text-muted-foreground">Track not found. <Link to="/tracks" className="text-primary underline">Back to tracks</Link></div>;
   const { s } = data;
   const slug = t.name.replace(/[^\w-]+/g, "_");
