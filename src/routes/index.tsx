@@ -80,7 +80,7 @@ function Cockpit() {
   );
 }
 
-function Readout({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: "warn" }) {
+function Readout({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: "warn" | undefined }) {
   return (
     <div className="rounded-xl border border-border bg-card px-4 py-3">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>

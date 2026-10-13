@@ -36,9 +36,9 @@ function SettingsPage() {
 
       <Group title="GPS logging">
         <p className="mb-2 text-sm text-muted-foreground">Log a point every</p>
-        <Seg options={intervals.map((i) => [String(i), `${i / 1000}s`])} value={String(settings.intervalMs)} onChange={(v) => set({ intervalMs: +v })} />
+        <Seg options={intervals.map((i): [string, string] => [String(i), `${i / 1000}s`])} value={String(settings.intervalMs)} onChange={(v) => set({ intervalMs: +v })} />
         <p className="mb-2 mt-4 text-sm text-muted-foreground">Skip points closer than</p>
-        <Seg options={distances.map((d) => [String(d), `${d}m`])} value={String(settings.minDistance)} onChange={(v) => set({ minDistance: +v })} />
+        <Seg options={distances.map((d): [string, string] => [String(d), `${d}m`])} value={String(settings.minDistance)} onChange={(v) => set({ minDistance: +v })} />
         <label className="mt-4 flex items-center justify-between">
           <span><span className="block font-medium">High accuracy</span><span className="text-xs text-muted-foreground">Uses satellite GPS; more battery</span></span>
           <Switch checked={settings.highAccuracy} onCheckedChange={(c) => set({ highAccuracy: c })} />
@@ -61,7 +61,7 @@ const Group = ({ title, children }: { title: string; children: React.ReactNode }
     {children}
   </section>
 );
-function Seg({ options, value, onChange }: { options: string[][]; value: string; onChange: (v: string) => void }) {
+function Seg({ options, value, onChange }: { options: [string, string][]; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex rounded-lg bg-secondary p-1">
       {options.map(([v, l]) => (
