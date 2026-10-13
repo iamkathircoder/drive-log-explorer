@@ -21,7 +21,7 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
   useEffect(() => {
     if (!el.current) return;
     const m = L.map(el.current, { zoomControl: false, attributionControl: true }).setView([20, 0], 2);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "© OpenStreetMap © CARTO", maxZoom: 19 }).addTo(m);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;
     return () => { m.remove(); map.current = null; };
