@@ -1,9 +1,9 @@
 export type TrackPoint = { lat: number; lon: number; ele: number | null; t: number; speed: number | null; acc: number | null };
-export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[] };
+export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string; raw?: TrackPoint[]; eleCorrected?: boolean };
 export type Units = "metric" | "imperial";
-export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number };
+export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean };
 
-export const DEFAULT_SETTINGS: Settings = { units: "metric", intervalMs: 1000, highAccuracy: true, minDistance: 2 };
+export const DEFAULT_SETTINGS: Settings = { units: "metric", intervalMs: 1000, highAccuracy: true, minDistance: 2, maxAccuracy: 30, smoothOnSave: true };
 const TK = "driveLog.tracks";
 const SK = "driveLog.settings";
 
@@ -19,6 +19,7 @@ export function loadTracks(): Track[] {
 }
 function writeTracks(t: Track[]) { localStorage.setItem(TK, JSON.stringify(t)); window.dispatchEvent(new Event("drivelog-tracks")); }
 export function saveTrack(t: Track) { writeTracks([t, ...loadTracks().filter((x) => x.id !== t.id)]); }
+export function updateTrack(id: string, patch: Partial<Track>) { writeTracks(loadTracks().map((x) => (x.id === id ? { ...x, ...patch } : x))); }
 export function deleteTrack(id: string) { writeTracks(loadTracks().filter((x) => x.id !== id)); }
 export function clearTracks() { writeTracks([]); }
 export function storageBytes() { return typeof window === "undefined" ? 0 : (localStorage.getItem(TK) || "").length * 2; }
@@ -121,4 +122,50 @@ export function parseTrackFile(text: string, filename: string): Track {
 export function download(name: string, content: string, mime: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
   const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+}
+
+// ---------- GPS quality ----------
+const MAX_SPEED = 90; // m/s (~324 km/h) — anything faster between fixes is a GPS jump
+/** Drop inaccurate fixes and impossible jumps. */
+export function filterPoints(pts: TrackPoint[], maxAccuracy: number): TrackPoint[] {
+  const out: TrackPoint[] = [];
+  for (const p of pts) {
+    if (maxAccuracy > 0 && p.acc != null && p.acc > maxAccuracy) continue;
+    const q = out.at(-1);
+    if (q) { const dt = (p.t - q.t) / 1000; if (dt <= 0) continue; if (haversine(q, p) / dt > MAX_SPEED) continue; }
+    out.push(p);
+  }
+  return out;
+}
+const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]!; };
+/** Median+mean smoothing for elevation, light mean smoothing for position and speed. */
+export function smoothPoints(pts: TrackPoint[], win = 5): TrackPoint[] {
+  const h = Math.floor(win / 2);
+  const med = pts.map((p, i) => { const e = pts.slice(Math.max(0, i - h), i + h + 1).map((x) => x.ele).filter((x): x is number => x != null); return p.ele == null || !e.length ? p.ele : median(e); });
+  return pts.map((p, i) => {
+    const w = pts.slice(Math.max(0, i - 1), i + 2);
+    const ew = med.slice(Math.max(0, i - h), i + h + 1).filter((x): x is number => x != null);
+    const sw = pts.slice(Math.max(0, i - 1), i + 2).map((x) => x.speed).filter((x): x is number => x != null);
+    const edge = i === 0 || i === pts.length - 1;
+    return {
+      ...p,
+      lat: edge ? p.lat : w.reduce((a, x) => a + x.lat, 0) / w.length,
+      lon: edge ? p.lon : w.reduce((a, x) => a + x.lon, 0) / w.length,
+      ele: med[i] == null ? null : ew.reduce((a, x) => a + x, 0) / ew.length,
+      speed: p.speed == null || !sw.length ? p.speed : sw.reduce((a, x) => a + x, 0) / sw.length,
+    };
+  });
+}
+export const cleanTrack = (pts: TrackPoint[], maxAccuracy: number) => { const f = filterPoints(pts, maxAccuracy); return f.length >= 2 ? smoothPoints(f) : pts; };
+/** Replace GPS altitude with terrain elevation (Open-Meteo, free, 100 coords per call). */
+export async function correctElevation(pts: TrackPoint[]): Promise<TrackPoint[]> {
+  const out = pts.map((p) => ({ ...p }));
+  for (let i = 0; i < pts.length; i += 100) {
+    const c = pts.slice(i, i + 100);
+    const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${c.map((p) => p.lat.toFixed(5)).join(",")}&longitude=${c.map((p) => p.lon.toFixed(5)).join(",")}`);
+    if (!res.ok) throw new Error("Elevation service unavailable — check your connection");
+    const j = (await res.json()) as { elevation: number[] };
+    j.elevation.forEach((e, k) => { out[i + k]!.ele = e; });
+  }
+  return out;
 }
