@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Pause, Play, Square, Sun, SatelliteDish, X } from "lucide-react";
+import { Pause, Play, Square, Sun, SatelliteDish, X, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileBars } from "@/components/ProfileBars";
 import { useRecorder } from "@/lib/recorder";
-import { distUnit, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, speedUnit, stats } from "@/lib/tracks";
+import { GRADE_WINDOW, distUnit, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, speedUnit, stats } from "@/lib/tracks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -65,11 +65,16 @@ function Cockpit() {
         <Readout label="Points" value={r.points.length.toString()} />
       </div>
 
+      <FilterStrip />
+
       {r.status !== "idle" && <ProfileBars points={r.points} units={u} bars={30} tabs />}
 
       <div className="sticky bottom-20 mt-auto flex gap-3 bg-background pt-2">
         {r.status === "idle" && (
           <button onClick={r.start} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold uppercase tracking-wide text-primary-foreground active:scale-[.98]"><Play className="h-6 w-6" />Start drive</button>
+        )}
+        {r.status === "idle" && (
+          <button onClick={r.simulate} className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 text-sm font-semibold uppercase"><FlaskConical className="h-5 w-5" />Demo</button>
         )}
         {r.status === "recording" && (
           <button onClick={r.pause} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary text-lg font-semibold uppercase"><Pause className="h-6 w-6" />Pause</button>
@@ -110,5 +115,26 @@ function Readout({ label, value, unit, tone }: { label: string; value: string; u
         {value}{unit && <span className="ml-1 text-sm font-medium text-muted-foreground">{unit}</span>}
       </p>
     </div>
+  );
+}
+
+function FilterStrip() {
+  const r = useRecorder();
+  const chip = (on: boolean, label: string, detail: string) => (
+    <div className={`rounded-lg border px-2 py-1.5 ${on ? "border-primary/50 bg-primary/10" : "border-border bg-card"}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-wider ${on ? "text-primary" : "text-muted-foreground"}`}>{label}</p>
+      <p className="font-[family-name:var(--font-mono)] text-xs tabular-nums">{detail}</p>
+    </div>
+  );
+  return (
+    <section aria-label="Active GPS filters" className="space-y-1">
+      <p className="flex justify-between text-[11px] uppercase tracking-[0.18em] text-muted-foreground"><span>GPS filters</span>{r.simulating && <span className="text-primary">Demo drive · 5×</span>}</p>
+      <div className="grid grid-cols-4 gap-2">
+        {chip(true, "Kalman", `${r.filt.kalman} ok · ${r.filt.jumps} jumps`)}
+        {chip(r.stationary, r.stationary ? "Stopped" : "ZUPT", `${r.filt.zupt} held`)}
+        {chip(true, "Grade", `${GRADE_WINDOW} m window`)}
+        {chip(r.filt.inaccurate > 0, "Accuracy", `${r.filt.inaccurate} dropped`)}
+      </div>
+    </section>
   );
 }

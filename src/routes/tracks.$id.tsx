@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ProfileBars } from "@/components/ProfileBars";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
-import { cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
+import { GRADE_WINDOW, cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
 
 export const Route = createFileRoute("/tracks/$id")({
   head: () => ({
@@ -105,6 +105,20 @@ function TrackDetail() {
           <Bar dataKey="dist" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </Chart>
+
+      <section className="rounded-xl border border-border bg-card p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filters applied</h2>
+        {t.filters ? (
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold">
+            <span className="rounded-full bg-primary/15 px-2 py-1 text-primary">Kalman · {t.filters.jumps} jumps rejected</span>
+            <span className="rounded-full bg-primary/15 px-2 py-1 text-primary">Stop lock · {t.filters.removed} fixes held</span>
+            <span className="rounded-full bg-primary/15 px-2 py-1 text-primary">Grade · {t.filters.gradeWindow} m window</span>
+            <span className="rounded-full bg-secondary px-2 py-1">{t.filters.inaccurate} inaccurate dropped</span>
+            {t.raw && <span className="rounded-full bg-secondary px-2 py-1">{t.raw.length} → {t.points.length} pts</span>}
+            {t.eleCorrected && <span className="rounded-full bg-secondary px-2 py-1">Terrain elevation</span>}
+          </div>
+        ) : <p className="text-xs text-muted-foreground">Grade · {GRADE_WINDOW} m window and stop lock. Recorded before live filters were added.</p>}
+      </section>
 
       <section className="space-y-2 rounded-xl border border-border bg-card p-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fix GPS data</h2>

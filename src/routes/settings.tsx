@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useRecorder } from "@/lib/recorder";
-import { clearTracks, saveSettings, storageBytes, type Settings } from "@/lib/tracks";
+import { mockTracks } from "@/lib/mock";
+import { GRADE_WINDOW, clearTracks, saveSettings, saveTrack, storageBytes, type Settings } from "@/lib/tracks";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -52,6 +53,19 @@ function SettingsPage() {
           <span><span className="block font-medium">Clean & smooth on save</span><span className="text-xs text-muted-foreground">Removes GPS jumps, smooths elevation and speed</span></span>
           <Switch checked={settings.smoothOnSave} onCheckedChange={(c) => set({ smoothOnSave: c })} />
         </label>
+      </Group>
+
+      <Group title="Active GPS filters">
+        <ul className="space-y-2 text-sm">
+          <li><span className="font-medium">Kalman filter</span><span className="block text-xs text-muted-foreground">Smooths live position and speed; trusts each fix by its reported accuracy and rejects impossible jumps.</span></li>
+          <li><span className="font-medium">Stop lock (ZUPT)</span><span className="block text-xs text-muted-foreground">Below ~1.8 km/h the position is held, so idling adds no distance or slope noise.</span></li>
+          <li><span className="font-medium">Grade window · {GRADE_WINDOW} m</span><span className="block text-xs text-muted-foreground">Slope is measured over a rolling stretch of road for steady percentages.</span></li>
+        </ul>
+      </Group>
+
+      <Group title="Sample data">
+        <button onClick={() => { mockTracks().forEach(saveTrack); toast.success("2 sample drives added to Tracks"); }} className="h-11 w-full rounded-lg bg-secondary font-semibold">Add sample drives</button>
+        <p className="mt-2 text-xs text-muted-foreground">For a live preview, tap Demo on the Record screen.</p>
       </Group>
 
       <Group title="Storage">
