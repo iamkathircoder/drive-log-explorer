@@ -32,20 +32,31 @@ export function haversine(a: { lat: number; lon: number }, b: { lat: number; lon
 }
 
 export type Profile = { d: number; ele: number | null; speed: number; grade: number; t: number }[];
+export const GRADE_WINDOW = 75; // m — rolling distance window for road grade
+export const STATIONARY_SPEED = 0.5; // m/s (~1.8 km/h) — ZUPT threshold
+/** Grade = Δelevation / Δdistance over a rolling distance window (centered when possible). */
 export function profile(pts: TrackPoint[]): Profile {
-  let d = 0;
+  const n = pts.length, cum = new Array<number>(n).fill(0), spd = new Array<number>(n).fill(0);
+  for (let i = 1; i < n; i++) {
+    const q = pts[i - 1]!, p = pts[i]!, seg = haversine(q, p), dt = (p.t - q.t) / 1000;
+    const v = p.speed ?? (dt > 0 ? seg / dt : 0);
+    spd[i] = v;
+    // ZUPT: stationary segments add no distance (GPS wander at lights)
+    cum[i] = cum[i - 1]! + (v < STATIONARY_SPEED ? 0 : seg);
+  }
+  if (n) spd[0] = pts[0]!.speed ?? 0;
+  const half = GRADE_WINDOW / 2;
+  let lo = 0, hi = 0;
   return pts.map((p, i) => {
-    let speed = p.speed ?? 0, grade = 0;
-    if (i > 0) {
-      const q = pts[i - 1]!, seg = haversine(q, p), dt = (p.t - q.t) / 1000;
-      d += seg;
-      if (p.speed == null && dt > 0) speed = seg / dt;
-      // grade over ~ last 30 m window for stability
-      let j = i - 1, run = seg;
-      while (j > 0 && run < 30) { run += haversine(pts[j - 1]!, pts[j]!); j--; }
-      if (run > 5 && p.ele != null && pts[j]!.ele != null) grade = ((p.ele - pts[j]!.ele!) / run) * 100;
-    }
-    return { d, ele: p.ele, speed, grade: Math.max(-40, Math.min(40, grade)), t: p.t };
+    while (lo < i && cum[i]! - cum[lo]! > half) lo++;
+    while (hi < n - 1 && cum[hi + 1]! - cum[i]! <= half) hi++;
+    // if the centered window is short (track end / live), extend backwards to full window
+    let a = lo; const b = hi;
+    while (a > 0 && cum[b]! - cum[a]! < GRADE_WINDOW) a--;
+    let grade = 0;
+    const run = cum[b]! - cum[a]!, ea = pts[a]!.ele, eb = pts[b]!.ele;
+    if (run >= 20 && ea != null && eb != null) grade = ((eb - ea) / run) * 100;
+    return { d: cum[i]!, ele: p.ele, speed: spd[i]! < STATIONARY_SPEED ? 0 : spd[i]!, grade: Math.max(-30, Math.min(30, grade)), t: p.t };
   });
 }
 
@@ -157,6 +168,12 @@ export function smoothPoints(pts: TrackPoint[], win = 5): TrackPoint[] {
   });
 }
 export const cleanTrack = (pts: TrackPoint[], maxAccuracy: number) => { const f = filterPoints(pts, maxAccuracy); return f.length >= 2 ? smoothPoints(f) : pts; };
+/** Full cleanup for imported/raw tracks: Kalman + ZUPT, then elevation smoothing. */
+export async function kalmanClean(pts: TrackPoint[], maxAccuracy: number) {
+  const { kalmanTrack } = await import("./kalman");
+  const k = kalmanTrack(filterPoints(pts, maxAccuracy));
+  return k.length >= 2 ? smoothPoints(k) : pts;
+}
 /** Replace GPS altitude with terrain elevation (Open-Meteo, free, 100 coords per call). */
 export async function correctElevation(pts: TrackPoint[]): Promise<TrackPoint[]> {
   const out = pts.map((p) => ({ ...p }));

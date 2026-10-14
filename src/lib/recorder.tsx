@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { cleanTrack, haversine, loadSettings, loadTracks, saveTrack, type Settings, type Track, type TrackPoint } from "./tracks";
+import { GpsKalman } from "./kalman";
 
 type Status = "idle" | "recording" | "paused";
 type Ctx = {
@@ -20,6 +21,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   const [elapsed, setElapsed] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const watchId = useRef<number | null>(null);
+  const kf = useRef(new GpsKalman());
   const lock = useRef<any>(null);
   const statusRef = useRef<Status>("idle");
   const lastTs = useRef(0);
@@ -40,10 +42,14 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         setError(null);
-        const p: TrackPoint = { lat: pos.coords.latitude, lon: pos.coords.longitude, ele: pos.coords.altitude, t: pos.timestamp, speed: pos.coords.speed, acc: pos.coords.accuracy };
+        const raw: TrackPoint = { lat: pos.coords.latitude, lon: pos.coords.longitude, ele: pos.coords.altitude, t: pos.timestamp, speed: pos.coords.speed, acc: pos.coords.accuracy };
+        if (settings.maxAccuracy > 0 && raw.acc != null && raw.acc > settings.maxAccuracy * 2) { setCurrent((c) => c ?? raw); return; }
+        const p = kf.current.update(raw);
+        if (!p) return; // rejected multipath jump
         setCurrent(p);
         if (statusRef.current !== "recording") return;
-        if (settings.maxAccuracy > 0 && p.acc != null && p.acc > settings.maxAccuracy) return;
+        if (settings.maxAccuracy > 0 && raw.acc != null && raw.acc > settings.maxAccuracy) return;
+        if (kf.current.stationary) return; // ZUPT: hold position while stopped
         if (p.t - lastTs.current < settings.intervalMs - 50) return;
         setPoints((prev) => {
           const last = prev.at(-1);
