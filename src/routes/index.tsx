@@ -26,6 +26,7 @@ function Cockpit() {
   const grade = useMemo(() => profile(r.points).at(-1)?.grade ?? 0, [r.points]);
   const speed = fmtSpeed(r.current?.speed ?? 0, u);
   const ele = r.current?.ele;
+  useEffect(() => { if (r.autoMsg) toast(r.autoMsg); }, [r.autoMsg]);
 
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
