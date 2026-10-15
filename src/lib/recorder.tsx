@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { cleanTrack, haversine, loadSettings, loadTracks, saveTrack, GRADE_WINDOW, type Settings, type Track, type TrackPoint } from "./tracks";
 import { GpsKalman } from "./kalman";
 import { mockRaw } from "./mock";
+import { MotionDetector } from "./motion";
 
 export type FilterStats = { kalman: number; inaccurate: number; jumps: number; zupt: number };
 const ZERO: FilterStats = { kalman: 0, inaccurate: 0, jumps: 0, zupt: 0 };
@@ -9,7 +10,7 @@ const ZERO: FilterStats = { kalman: 0, inaccurate: 0, jumps: 0, zupt: 0 };
 type Status = "idle" | "recording" | "paused";
 type Ctx = {
   status: Status; points: TrackPoint[]; current: TrackPoint | null; error: string | null; wakeLock: boolean;
-  elapsed: number; filt: FilterStats; stationary: boolean; simulating: boolean; simulate: () => void; loaded: boolean; settings: Settings; tracks: Track[];
+  autoMsg: string | null; elapsed: number; filt: FilterStats; stationary: boolean; simulating: boolean; simulate: () => void; loaded: boolean; settings: Settings; tracks: Track[];
   start: () => void; pause: () => void; resume: () => void; stop: (name?: string, memo?: string) => Track | null; discard: () => void;
 };
 const RecorderCtx = createContext<Ctx | null>(null);
@@ -118,10 +119,10 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", v); return () => document.removeEventListener("visibilitychange", v);
   }, [acquireLock]);
 
-  const start = () => { setPoints([]); setFilt(ZERO); accum.current = 0; segStart.current = Date.now(); lastTs.current = 0; setElapsed(0); setStatus("recording"); acquireLock(); };
-  const pause = () => { accum.current += Date.now() - segStart.current; setStatus("paused"); releaseLock(); };
-  const resume = () => { segStart.current = Date.now(); setStatus("recording"); acquireLock(); };
-  const discard = () => { stopSim(); setStatus("idle"); setPoints([]); setElapsed(0); releaseLock(); };
+  const start = () => { setPoints([]); setFilt(ZERO); accum.current = 0; segStart.current = Date.now(); lastTs.current = 0; setElapsed(0); autoPaused.current = false; statusRef.current = "recording"; setStatus("recording"); acquireLock(); };
+  const pause = () => { autoPaused.current = false; accum.current += Date.now() - segStart.current; setStatus("paused"); releaseLock(); };
+  const resume = () => { autoPaused.current = false; statusRef.current = "recording"; segStart.current = Date.now(); setStatus("recording"); acquireLock(); };
+  const discard = () => { stopSim(); autoPaused.current = false; statusRef.current = "idle"; motion.current.reset(); setStatus("idle"); setPoints([]); setElapsed(0); releaseLock(); };
   const stop = (name?: string, memo?: string) => {
     const raw = points; discard();
     if (raw.length < 2) return null;
@@ -130,7 +131,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     saveTrack(t); return t;
   };
 
-  return <RecorderCtx.Provider value={{ status, points, current, error, wakeLock, elapsed, filt, stationary, simulating, simulate, loaded, settings, tracks, start, pause, resume, stop, discard }}>{children}</RecorderCtx.Provider>;
+  return <RecorderCtx.Provider value={{ status, autoMsg, points, current, error, wakeLock, elapsed, filt, stationary, simulating, simulate, loaded, settings, tracks, start, pause, resume, stop, discard }}>{children}</RecorderCtx.Provider>;
 }
 
 export function useRecorder() {
