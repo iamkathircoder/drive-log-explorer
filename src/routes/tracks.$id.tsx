@@ -48,7 +48,7 @@ function TrackDetail() {
   if (!loaded) return <div className="p-6 text-center text-muted-foreground">Loading…</div>;
   if (!t || !data) return <div className="p-6 text-center text-muted-foreground">Track not found. <Link to="/tracks" className="text-primary underline">Back to tracks</Link></div>;
   const { s } = data;
-  const pick = (key: string, score: (p: (typeof data.pr)[number]) => number) => {
+  const pick = (key: string, score: (p: ReturnType<typeof profile>[number]) => number) => {
     let best = -1, bv = -Infinity;
     data.pr.forEach((p, i) => { const v = score(p); if (v > bv) { bv = v; best = i; } });
     return best;
