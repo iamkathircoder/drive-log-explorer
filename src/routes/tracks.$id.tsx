@@ -32,6 +32,7 @@ function TrackDetail() {
   const [name, setName] = useState("");
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hl, setHl] = useState<string | null>(null);
   const data = useMemo(() => {
     if (!t) return null;
     const pr = profile(t.points);
@@ -39,6 +40,7 @@ function TrackDetail() {
     return {
       s: stats(t.points),
       chart: pr.filter((_, i) => i % step === 0).map((p) => ({ d: +fmtDist(p.d, u).toFixed(2), ele: p.ele != null ? Math.round(fmtEle(p.ele, u)) : null, speed: Math.round(fmtSpeed(p.speed, u)), grade: +p.grade.toFixed(1) })),
+      pr,
       slopes: slopeBreakdown(t.points).map((b) => ({ label: b.label, dist: +fmtDist(b.meters, u).toFixed(2) })),
     };
   }, [t, u]);
@@ -46,6 +48,22 @@ function TrackDetail() {
   if (!loaded) return <div className="p-6 text-center text-muted-foreground">Loading…</div>;
   if (!t || !data) return <div className="p-6 text-center text-muted-foreground">Track not found. <Link to="/tracks" className="text-primary underline">Back to tracks</Link></div>;
   const { s } = data;
+  const pick = (key: string, score: (p: (typeof data.pr)[number]) => number) => {
+    let best = -1, bv = -Infinity;
+    data.pr.forEach((p, i) => { const v = score(p); if (v > bv) { bv = v; best = i; } });
+    return best;
+  };
+  const targets: Record<string, number> = {
+    maxSpeed: pick("maxSpeed", (p) => p.speed),
+    minEle: pick("minEle", (p) => (p.ele == null ? -Infinity : -p.ele)),
+    maxEle: pick("maxEle", (p) => (p.ele == null ? -Infinity : p.ele)),
+    steepest: pick("steepest", (p) => Math.abs(p.grade)),
+  };
+  const labels: Record<string, string> = { maxSpeed: "Max speed", minEle: "Min elev", maxEle: "Max elev", steepest: "Steepest" };
+  const hi = hl != null ? targets[hl] ?? -1 : -1;
+  const hp = hi >= 0 ? t.points[hi] : undefined;
+  const highlight = hp && hl ? { lat: hp.lat, lon: hp.lon, label: `${labels[hl]}: ${hl === "maxSpeed" ? Math.round(fmtSpeed(data.pr[hi]!.speed, u)) + " " + speedUnit(u) : hl === "steepest" ? data.pr[hi]!.grade.toFixed(1) + "%" : Math.round(fmtEle(data.pr[hi]!.ele ?? 0, u)) + " " + eleUnit(u)}` } : null;
+  const tap = (k: string) => () => setHl(hl === k ? null : k);
   const slug = t.name.replace(/[^\w-]+/g, "_");
 
   return (
@@ -76,7 +94,7 @@ function TrackDetail() {
       )}
 
       <div className="relative h-56 overflow-hidden rounded-xl border border-border">
-        <LazyMap points={t.points} follow={false} colorMode={mode} />
+        <LazyMap points={t.points} follow={false} colorMode={mode} highlight={highlight} />
         <div className="absolute right-2 top-2 z-[500] flex rounded-full bg-card/90 p-1 text-[11px] font-semibold uppercase">
           {(["elevation", "speed"] as const).map((m) => <button key={m} onClick={() => setMode(m)} className={`rounded-full px-2.5 py-1 ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{m}</button>)}
         </div>
@@ -86,15 +104,16 @@ function TrackDetail() {
         <Stat l="Distance" v={fmtDist(s.distance, u).toFixed(2)} un={distUnit(u)} />
         <Stat l="Duration" v={fmtDuration(s.duration)} />
         <Stat l="Avg speed" v={Math.round(fmtSpeed(s.avgSpeed, u)).toString()} un={speedUnit(u)} />
-        <Stat l="Max speed" v={Math.round(fmtSpeed(s.maxSpeed, u)).toString()} un={speedUnit(u)} />
+        <Stat on={tap("maxSpeed")} active={hl === "maxSpeed"} l="Max speed" v={Math.round(fmtSpeed(s.maxSpeed, u)).toString()} un={speedUnit(u)} />
         <Stat l="Climb" v={Math.round(fmtEle(s.gain, u)).toString()} un={eleUnit(u)} />
         <Stat l="Descent" v={Math.round(fmtEle(s.loss, u)).toString()} un={eleUnit(u)} />
-        <Stat l="Min elev" v={s.minEle != null ? Math.round(fmtEle(s.minEle, u)).toString() : "—"} un={eleUnit(u)} />
-        <Stat l="Max elev" v={s.maxEle != null ? Math.round(fmtEle(s.maxEle, u)).toString() : "—"} un={eleUnit(u)} />
-        <Stat l="Steepest" v={`${s.maxGrade.toFixed(1)}/${s.minGrade.toFixed(1)}`} un="%" />
+        <Stat on={tap("minEle")} active={hl === "minEle"} l="Min elev" v={s.minEle != null ? Math.round(fmtEle(s.minEle, u)).toString() : "—"} un={eleUnit(u)} />
+        <Stat on={tap("maxEle")} active={hl === "maxEle"} l="Max elev" v={s.maxEle != null ? Math.round(fmtEle(s.maxEle, u)).toString() : "—"} un={eleUnit(u)} />
+        <Stat on={tap("steepest")} active={hl === "steepest"} l="Steepest" v={`${s.maxGrade.toFixed(1)}/${s.minGrade.toFixed(1)}`} un="%" />
       </div>
 
-      <ProfileBars points={t.points} units={u} bars={48} />
+      {hl && <p className="text-center text-xs text-muted-foreground">Highlighted on map and graphs. Tap the stat again to clear.</p>}
+      <ProfileBars points={t.points} units={u} bars={48} highlightD={hi >= 0 ? data.pr[hi]!.d : null} />
 
       <Chart title={`Slope breakdown (${distUnit(u)} per grade)`}>
         <BarChart data={data.slopes}>
@@ -138,8 +157,8 @@ function TrackDetail() {
   );
 }
 
-const Stat = ({ l, v, un }: { l: string; v: string; un?: string }) => (
-  <div className="rounded-lg border border-border bg-card px-3 py-2">
+const Stat = ({ l, v, un, on, active }: { l: string; v: string; un?: string; on?: () => void; active?: boolean }) => (
+  <div role={on ? "button" : undefined} onClick={on} className={`rounded-lg border bg-card px-3 py-2 ${on ? "cursor-pointer" : ""} ${active ? "border-primary ring-1 ring-primary" : "border-border"}`}>
     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{l}</p>
     <p className="font-[family-name:var(--font-mono)] text-lg font-bold tabular-nums">{v}{un && <span className="ml-0.5 text-xs text-muted-foreground">{un}</span>}</p>
   </div>

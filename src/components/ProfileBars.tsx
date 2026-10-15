@@ -20,7 +20,7 @@ export function bucketize(points: TrackPoint[], bars: number) {
   return out.filter((b) => b.n > 0).map((b) => ({ d: b.d, ele: b.eleN ? b.ele / b.eleN : null, speed: b.speed / b.n, grade: b.grade / b.n }));
 }
 
-export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation", "speed", "slope"], tabs = false }: { points: TrackPoint[]; units: Units; bars?: number; metrics?: Metric[]; tabs?: boolean }) {
+export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation", "speed", "slope"], tabs = false, highlightD = null }: { points: TrackPoint[]; units: Units; bars?: number; metrics?: Metric[]; tabs?: boolean; highlightD?: number | null }) {
   const [active, setActive] = useState<Metric>(metrics[0]!);
   const data = useMemo(() => bucketize(points, bars).map((b) => ({
     d: +fmtDist(b.d, u).toFixed(2),
@@ -29,6 +29,10 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
     slope: +b.grade.toFixed(1),
   })), [points, u, bars]);
 
+  const hlIdx = useMemo(() => {
+    if (highlightD == null) return -1;
+    const b = bucketize(points, bars); return b.findIndex((x) => x.d >= highlightD);
+  }, [points, bars, highlightD]);
   const shown = tabs ? [active] : metrics;
   const meta: Record<Metric, { title: string; color: string }> = {
     elevation: { title: `Elevation (${eleUnit(u)})`, color: "var(--color-chart-2)" },
@@ -59,8 +63,8 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
                   <YAxis width={38} domain={m === "elevation" ? ["dataMin - 5", "auto"] : ["auto", "auto"]} allowDataOverflow tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} />
                   <Tooltip {...tip} labelFormatter={(v) => `${v} ${distUnit(u)}`} />
                   <Bar dataKey={m} fill={meta[m].color} radius={[3, 3, 0, 0]} isAnimationActive={false}>
-                    {m === "slope" && data.map((row, i) => (
-                      <Cell key={i} fill={row.slope > 8 || row.slope < -8 ? "var(--color-destructive)" : row.slope >= 0 ? "var(--color-chart-1)" : "var(--color-chart-3)"} />
+                    {(m === "slope" || hlIdx >= 0) && data.map((row, i) => (
+                      <Cell key={i} fill={i === hlIdx ? "var(--color-foreground)" : m !== "slope" ? meta[m].color : row.slope > 8 || row.slope < -8 ? "var(--color-destructive)" : row.slope >= 0 ? "var(--color-chart-1)" : "var(--color-chart-3)"} />
                     ))}
                   </Bar>
                 </BarChart>
