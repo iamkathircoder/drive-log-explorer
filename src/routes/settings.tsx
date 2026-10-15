@@ -55,6 +55,16 @@ function SettingsPage() {
         </label>
       </Group>
 
+      <Group title="Auto start & pause">
+        <label className="flex items-center justify-between">
+          <span><span className="block font-medium">Auto-start when driving</span><span className="text-xs text-muted-foreground">Starts recording once you move above ~11 km/h for 8 s</span></span>
+          <Switch checked={settings.autoStart} onCheckedChange={(c) => set({ autoStart: c })} />
+        </label>
+        <p className="mb-2 mt-4 text-sm text-muted-foreground">Auto-pause after being stopped for</p>
+        <Seg options={[0, 60, 120, 300].map((d): [string, string] => [String(d), d ? `${d / 60} min` : "Off"])} value={String(settings.autoPauseSec)} onChange={(v) => set({ autoPauseSec: +v })} />
+        <p className="mt-2 text-xs text-muted-foreground">An auto-paused drive resumes by itself when you start moving again. Keep the app open on screen.</p>
+      </Group>
+
       <Group title="Active GPS filters">
         <ul className="space-y-2 text-sm">
           <li><span className="font-medium">Kalman filter</span><span className="block text-xs text-muted-foreground">Smooths live position and speed; trusts each fix by its reported accuracy and rejects impossible jumps.</span></li>
