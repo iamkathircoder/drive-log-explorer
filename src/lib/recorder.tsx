@@ -41,6 +41,9 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [filt, setFilt] = useState<FilterStats>(ZERO);
+  const motion = useRef(new MotionDetector());
+  const autoPaused = useRef(false);
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const [stationary, setStationary] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const sim = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -52,6 +55,15 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     const p = kf.current.update(raw);
     if (!p) { if (statusRef.current === "recording") bump("jumps"); return; } // rejected multipath jump
     setCurrent(p); setStationary(kf.current.stationary);
+    // Activity detection: auto start / pause / resume
+    motion.current.stillMs = settings.autoPauseSec * 1000;
+    const m = motion.current.feed(p.speed, p.t);
+    if (m === "driving") {
+      if (statusRef.current === "idle" && settings.autoStart) { start(); setAutoMsg("Driving detected — recording started"); }
+      else if (statusRef.current === "paused" && autoPaused.current) { resume(); setAutoMsg("Moving again — resumed"); }
+    } else if (m === "still" && statusRef.current === "recording" && settings.autoPauseSec > 0) {
+      pause(); autoPaused.current = true; statusRef.current = "paused"; setAutoMsg(`Idle ${Math.round(settings.autoPauseSec / 60 * 10) / 10} min — auto-paused`);
+    }
     if (statusRef.current !== "recording") return;
     if (settings.maxAccuracy > 0 && raw.acc != null && raw.acc > settings.maxAccuracy) { bump("inaccurate"); return; }
     if (kf.current.stationary) { bump("zupt"); return; } // ZUPT: hold position while stopped
