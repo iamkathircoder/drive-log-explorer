@@ -1,5 +1,5 @@
 export type TrackPoint = { lat: number; lon: number; ele: number | null; t: number; speed: number | null; acc: number | null };
-export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string | undefined; raw?: TrackPoint[] | undefined; eleCorrected?: boolean; filters?: FilterInfo | undefined };
+export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string | undefined; raw?: TrackPoint[] | undefined; eleCorrected?: boolean; filters?: FilterInfo | undefined; markers?: import("./extras").Marker[] | undefined; weather?: { start?: import("./extras").Weather | null; end?: import("./extras").Weather | null } | undefined };
 export type FilterInfo = { kalman: boolean; zupt: boolean; gradeWindow: number; inaccurate: number; jumps: number; removed: number };
 export type Units = "metric" | "imperial";
 export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean; autoStart: boolean; autoPauseSec: number };
