@@ -3,6 +3,8 @@ import { cleanTrack, haversine, loadSettings, loadTracks, saveTrack, GRADE_WINDO
 import { GpsKalman } from "./kalman";
 import { mockRaw } from "./mock";
 import { MotionDetector } from "./motion";
+import { fetchWeather, listen, speak, speechSupported, type Marker, type Weather } from "./extras";
+import { updateTrack } from "./tracks";
 
 export type FilterStats = { kalman: number; inaccurate: number; jumps: number; zupt: number };
 const ZERO: FilterStats = { kalman: 0, inaccurate: 0, jumps: 0, zupt: 0 };
@@ -12,6 +14,7 @@ type Ctx = {
   status: Status; points: TrackPoint[]; current: TrackPoint | null; error: string | null; wakeLock: boolean;
   autoMsg: string | null; elapsed: number; filt: FilterStats; stationary: boolean; simulating: boolean; simulate: () => void; loaded: boolean; settings: Settings; tracks: Track[];
   start: () => void; pause: () => void; resume: () => void; stop: (name?: string, memo?: string) => Track | null; discard: () => void;
+  markers: Marker[]; addMarker: (label?: string) => void; voiceOn: boolean; voiceSupported: boolean; toggleVoice: () => void; weather: Weather | null;
 };
 const RecorderCtx = createContext<Ctx | null>(null);
 
@@ -48,6 +51,27 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
   const [stationary, setStationary] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const sim = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const stopVoice = useRef<(() => void) | null>(null);
+  const curRef = useRef<TrackPoint | null>(null);
+  useEffect(() => setVoiceSupported(speechSupported()), []);
+  const addMarker = (label = "Marker") => {
+    const c = curRef.current; if (!c) { speak("No GPS fix"); return; }
+    setMarkers((m) => [...m, { t: Date.now(), lat: c.lat, lon: c.lon, label }]); setAutoMsg(`Marker: ${label}`); speak(`Marked ${label}`);
+  };
+  const addRef = useRef(addMarker); addRef.current = addMarker;
+  const toggleVoice = () => {
+    if (stopVoice.current) { stopVoice.current(); stopVoice.current = null; setVoiceOn(false); return; }
+    try { stopVoice.current = listen((l) => addRef.current(l), () => { stopVoice.current = null; setVoiceOn(false); }); setVoiceOn(true); speak("Voice markers on. Say mark, then a word."); }
+    catch { setError("Voice not available on this device"); }
+  };
+  useEffect(() => () => stopVoice.current?.(), []);
+  // Live weather: refresh every 15 min once we have a fix
+  const wxAt = useRef(0);
+  useEffect(() => { curRef.current = current; if (current && Date.now() - wxAt.current > 15 * 60e3) { wxAt.current = Date.now(); fetchWeather(current.lat, current.lon).then((w) => w && setWeather(w)); } }, [current]);
   const bump = (k: keyof FilterStats) => setFilt((f) => ({ ...f, [k]: f[k] + 1 }));
 
   const ingest = (raw: TrackPoint) => {
@@ -119,19 +143,22 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", v); return () => document.removeEventListener("visibilitychange", v);
   }, [acquireLock]);
 
-  const start = () => { setPoints([]); setFilt(ZERO); accum.current = 0; segStart.current = Date.now(); lastTs.current = 0; setElapsed(0); autoPaused.current = false; statusRef.current = "recording"; setStatus("recording"); acquireLock(); };
+  const start = () => { setPoints([]); setMarkers([]); setFilt(ZERO); accum.current = 0; segStart.current = Date.now(); lastTs.current = 0; setElapsed(0); autoPaused.current = false; statusRef.current = "recording"; setStatus("recording"); acquireLock(); };
   const pause = () => { autoPaused.current = false; accum.current += Date.now() - segStart.current; setStatus("paused"); releaseLock(); };
   const resume = () => { autoPaused.current = false; statusRef.current = "recording"; segStart.current = Date.now(); setStatus("recording"); acquireLock(); };
   const discard = () => { stopSim(); autoPaused.current = false; statusRef.current = "idle"; motion.current.reset(); setStatus("idle"); setPoints([]); setElapsed(0); releaseLock(); };
   const stop = (name?: string, memo?: string) => {
-    const raw = points; discard();
+    const raw = points, mk = markers; discard(); setMarkers([]);
     if (raw.length < 2) return null;
     const pts = settings.smoothOnSave ? cleanTrack(raw, settings.maxAccuracy) : raw;
-    const t: Track = { id: crypto.randomUUID(), name: name?.trim() || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts, memo: memo?.trim() || undefined, raw: pts !== raw ? raw : undefined, filters: { kalman: true, zupt: true, gradeWindow: GRADE_WINDOW, inaccurate: filt.inaccurate, jumps: filt.jumps, removed: filt.zupt } };
-    saveTrack(t); return t;
+    const t: Track = { id: crypto.randomUUID(), name: name?.trim() || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts, memo: memo?.trim() || undefined, raw: pts !== raw ? raw : undefined, filters: { kalman: true, zupt: true, gradeWindow: GRADE_WINDOW, inaccurate: filt.inaccurate, jumps: filt.jumps, removed: filt.zupt }, markers: mk.length ? mk : undefined };
+    saveTrack(t);
+    const a = pts[0]!, b = pts.at(-1)!;
+    Promise.all([fetchWeather(a.lat, a.lon, a.t), fetchWeather(b.lat, b.lon, b.t)]).then(([start, end]) => { if (start || end) updateTrack(t.id, { weather: { start, end } }); });
+    return t;
   };
 
-  return <RecorderCtx.Provider value={{ status, autoMsg, points, current, error, wakeLock, elapsed, filt, stationary, simulating, simulate, loaded, settings, tracks, start, pause, resume, stop, discard }}>{children}</RecorderCtx.Provider>;
+  return <RecorderCtx.Provider value={{ status, autoMsg, points, current, error, wakeLock, elapsed, filt, stationary, simulating, simulate, loaded, settings, tracks, start, pause, resume, stop, discard, markers, addMarker, voiceOn, voiceSupported, toggleVoice, weather }}>{children}</RecorderCtx.Provider>;
 }
 
 export function useRecorder() {

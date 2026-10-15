@@ -4,6 +4,7 @@ import { ArrowLeft, Download, Mountain, Pencil, RotateCcw, Sparkles, Trash2 } fr
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProfileBars } from "@/components/ProfileBars";
+import { fetchWeather, weatherIcon, weatherLabel } from "@/lib/extras";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
 import { GRADE_WINDOW, cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
@@ -124,6 +125,29 @@ function TrackDetail() {
           <Bar dataKey="dist" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </Chart>
+
+      <section className="rounded-xl border border-border bg-card p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weather on the trip</h2>
+        {t.weather && (t.weather.start || t.weather.end) ? (
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {(["start", "end"] as const).map((k) => { const w = t.weather![k]; return (
+              <div key={k} className="rounded-lg bg-secondary p-2"><p className="text-[10px] uppercase text-muted-foreground">{k}</p>
+                {w ? <><p className="text-lg font-semibold">{weatherIcon(w.code)} {Math.round(w.temp)}°C</p><p className="text-xs text-muted-foreground">{weatherLabel(w.code)} · {Math.round(w.wind)} km/h · {w.rain} mm</p></> : <p className="text-xs">—</p>}
+              </div>); })}
+          </div>
+        ) : (
+          <button onClick={async () => { const a = t.points[0]!, b = t.points.at(-1)!; const [start, end] = await Promise.all([fetchWeather(a.lat, a.lon, a.t), fetchWeather(b.lat, b.lon, b.t)]); if (start || end) { updateTrack(t.id, { weather: { start, end } }); toast.success("Weather added"); } else toast("Weather not available for this date"); }} className="h-10 w-full rounded-lg bg-secondary text-sm font-semibold">Look up weather</button>
+        )}
+      </section>
+
+      {t.markers?.length ? (
+        <section className="rounded-xl border border-border bg-card p-3">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Markers ({t.markers.length})</h2>
+          <ul className="space-y-1 text-sm">
+            {t.markers.map((m, i) => <li key={i} className="flex justify-between"><span>📍 {m.label}</span><a className="font-[family-name:var(--font-mono)] text-xs text-primary" href={`https://www.openstreetmap.org/?mlat=${m.lat}&mlon=${m.lon}#map=17/${m.lat}/${m.lon}`} target="_blank" rel="noreferrer">{new Date(m.t).toLocaleTimeString()}</a></li>)}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-border bg-card p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filters applied</h2>

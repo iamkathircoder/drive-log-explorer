@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DriveRouteImport } from './routes/drive'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TracksIndexRouteImport } from './routes/tracks.index'
@@ -18,6 +19,11 @@ import { Route as TracksIdRouteImport } from './routes/tracks.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriveRoute = DriveRouteImport.update({
+  id: '/drive',
+  path: '/drive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapRoute = MapRouteImport.update({
@@ -43,6 +49,7 @@ const TracksIdRoute = TracksIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/settings': typeof SettingsRoute
   '/tracks/$id': typeof TracksIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/settings': typeof SettingsRoute
   '/tracks/$id': typeof TracksIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/drive': typeof DriveRoute
   '/map': typeof MapRoute
   '/settings': typeof SettingsRoute
   '/tracks/$id': typeof TracksIdRoute
@@ -65,14 +74,22 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/map' | '/settings' | '/tracks/$id' | '/tracks/'
+  fullPaths: '/' | '/drive' | '/map' | '/settings' | '/tracks/$id' | '/tracks/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/map' | '/settings' | '/tracks/$id' | '/tracks'
-  id: '__root__' | '/' | '/map' | '/settings' | '/tracks/$id' | '/tracks/'
+  to: '/' | '/drive' | '/map' | '/settings' | '/tracks/$id' | '/tracks'
+  id:
+    | '__root__'
+    | '/'
+    | '/drive'
+    | '/map'
+    | '/settings'
+    | '/tracks/$id'
+    | '/tracks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DriveRoute: typeof DriveRoute
   MapRoute: typeof MapRoute
   SettingsRoute: typeof SettingsRoute
   TracksIdRoute: typeof TracksIdRoute
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drive': {
+      id: '/drive'
+      path: '/drive'
+      fullPath: '/drive'
+      preLoaderRoute: typeof DriveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/map': {
@@ -121,6 +145,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DriveRoute: DriveRoute,
   MapRoute: MapRoute,
   SettingsRoute: SettingsRoute,
   TracksIdRoute: TracksIdRoute,
