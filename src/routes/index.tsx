@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { weatherIcon, weatherLabel } from "@/lib/extras";
 import { useEffect, useMemo, useState } from "react";
-import { Pause, Play, Square, Sun, SatelliteDish, X, FlaskConical } from "lucide-react";
+import { Pause, Play, Square, Sun, SatelliteDish, X, FlaskConical, Mic, MicOff, MapPin, Car } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileBars } from "@/components/ProfileBars";
 import { useRecorder } from "@/lib/recorder";
@@ -49,6 +50,11 @@ function Cockpit() {
         </div>
       </header>
 
+      <div className="flex items-center gap-2 text-sm">
+        {r.weather && <span className="rounded-lg border border-border bg-card px-3 py-1.5">{weatherIcon(r.weather.code)} {Math.round(r.weather.temp)}° · {weatherLabel(r.weather.code)} · {Math.round(r.weather.wind)} km/h wind</span>}
+        <Link to="/drive" className="ml-auto flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5 font-semibold"><Car className="h-4 w-4" />Drive mode</Link>
+      </div>
+
       {r.error && <p className="rounded-lg bg-destructive/15 px-3 py-2 text-sm text-destructive">{r.error}</p>}
 
       <section className="rounded-2xl border border-border bg-card p-6 text-center">
@@ -65,6 +71,13 @@ function Cockpit() {
         <Readout label="Max" value={Math.round(fmtSpeed(s.maxSpeed, u)).toString()} unit={speedUnit(u)} />
         <Readout label="Points" value={r.points.length.toString()} />
       </div>
+
+      {r.status !== "idle" && (
+        <div className="flex gap-2">
+          {r.voiceSupported && <button onClick={r.toggleVoice} className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-semibold ${r.voiceOn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{r.voiceOn ? <Mic className="h-5 w-5 animate-pulse" /> : <MicOff className="h-5 w-5" />}{r.voiceOn ? 'Listening — say "mark …"' : "Voice markers"}</button>}
+          <button onClick={() => r.addMarker()} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold"><MapPin className="h-5 w-5" />Mark ({r.markers.length})</button>
+        </div>
+      )}
 
       <FilterStrip />
 
