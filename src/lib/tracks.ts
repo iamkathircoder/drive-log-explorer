@@ -3,7 +3,7 @@ export type Track = { id: string; name: string; createdAt: number; points: Track
 export type FilterInfo = { kalman: boolean; zupt: boolean; gradeWindow: number; inaccurate: number; jumps: number; removed: number };
 export type Units = "metric" | "imperial";
 export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean; autoStart: boolean; autoPauseSec: number };
-@@KEEP6@@
+
 export const DEFAULT_SETTINGS: Settings = { units: "metric", intervalMs: 1000, highAccuracy: true, minDistance: 2, maxAccuracy: 30, smoothOnSave: true, autoStart: false, autoPauseSec: 120 };
 const TK = "driveLog.tracks";
 const SK = "driveLog.settings";
