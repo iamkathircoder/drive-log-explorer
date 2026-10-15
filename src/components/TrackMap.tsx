@@ -11,7 +11,7 @@ function ramp(v: number) {
   return `hsl(${h} 90% 50%)`;
 }
 
-export default function TrackMap({ points, current, follow = true, colorMode = "speed", recenterKey = 0 }: { points: TrackPoint[]; current?: TrackPoint | null; follow?: boolean; colorMode?: ColorMode; recenterKey?: number }) {
+export default function TrackMap({ points, current, follow = true, colorMode = "speed", recenterKey = 0, highlight = null }: { points: TrackPoint[]; current?: TrackPoint | null; follow?: boolean; colorMode?: ColorMode; recenterKey?: number; highlight?: { lat: number; lon: number; label: string } | null }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -60,6 +60,16 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     if (current) m.setView([current.lat, current.lon], 17);
     else if (points.length) m.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lon])), { padding: [30, 30] });
   }, [recenterKey]);
+
+  const hl = useRef<L.CircleMarker | null>(null);
+  useEffect(() => {
+    const m = map.current; if (!m) return;
+    hl.current?.remove(); hl.current = null;
+    if (!highlight) return;
+    hl.current = L.circleMarker([highlight.lat, highlight.lon], { radius: 11, color: "#fff", weight: 3, fillColor: "#a855f7", fillOpacity: 1 })
+      .addTo(m).bindTooltip(highlight.label, { permanent: true, direction: "top", offset: [0, -10] });
+    m.setView([highlight.lat, highlight.lon], Math.max(m.getZoom(), 15), { animate: true });
+  }, [highlight]);
 
   return <div ref={el} className="h-full w-full" />;
 }
