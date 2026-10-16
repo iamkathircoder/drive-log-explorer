@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { BackupControls } from "@/components/BackupControls";
 import { useRecorder } from "@/lib/recorder";
 import { mockTracks } from "@/lib/mock";
 import { GRADE_WINDOW, clearTracks, saveSettings, saveTrack, storageBytes, type Settings } from "@/lib/tracks";
@@ -13,6 +14,8 @@ export const Route = createFileRoute("/settings")({
       { name: "description", content: "Units, GPS logging frequency and accuracy, and storage management." },
       { property: "og:title", content: "Settings — Drivelog" },
       { property: "og:description", content: "Units, GPS logging frequency and accuracy, and storage management." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SettingsPage,
@@ -77,6 +80,8 @@ function SettingsPage() {
         <button onClick={() => { mockTracks().forEach(saveTrack); toast.success("2 sample drives added to Tracks"); }} className="h-11 w-full rounded-lg bg-secondary font-semibold">Add sample drives</button>
         <p className="mt-2 text-xs text-muted-foreground">For a live preview, tap Demo on the Record screen.</p>
       </Group>
+
+      <BackupControls showReminder />
 
       <Group title="Storage">
         <div className="flex justify-between text-sm"><span>Saved tracks</span><span className="font-[family-name:var(--font-mono)]">{tracks.length}</span></div>

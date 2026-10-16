@@ -7,7 +7,9 @@ import { ProfileBars } from "@/components/ProfileBars";
 import { type WeatherSample, weatherAlong, weatherIcon, weatherLabel } from "@/lib/extras";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
-import { GRADE_WINDOW, cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
+import { Button } from "@/components/ui/button";
+import { downloadFile, toCSV, toJSON } from "@/lib/backup";
+import { GRADE_WINDOW, cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
 
 export const Route = createFileRoute("/tracks/$id")({
   head: () => ({
@@ -16,6 +18,8 @@ export const Route = createFileRoute("/tracks/$id")({
       { name: "description", content: "Elevation graph, speed profile, slope breakdown and export for a recorded drive." },
       { property: "og:title", content: "Track Details — Drivelog" },
       { property: "og:description", content: "Elevation graph, speed profile, slope breakdown and export for a recorded drive." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TrackDetail,
@@ -217,10 +221,18 @@ function TrackDetail() {
         <p className="text-[11px] text-muted-foreground">{t.eleCorrected ? "Elevation uses terrain data. " : ""}Correct elevation needs internet.</p>
       </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => download(`${slug}.gpx`, toGPX(t), "application/gpx+xml")} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground"><Download className="h-4 w-4" />Export GPX</button>
-        <button onClick={() => download(`${slug}.kml`, toKML(t), "application/vnd.google-earth.kml+xml")} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-secondary font-semibold"><Download className="h-4 w-4" />Export KML</button>
-      </div>
+      <section aria-label="Export drive" className="space-y-3 border-t border-border py-4">
+        <h2 className="text-sm font-semibold">Export drive</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            ["GPX", "gpx", "application/gpx+xml", toGPX],
+            ["KML", "kml", "application/vnd.google-earth.kml+xml", toKML],
+            ["CSV", "csv", "text/csv;charset=utf-8", toCSV],
+            ["JSON", "json", "application/json", toJSON],
+          ] as const).map(([label, extension, mime, encode]) => <Button key={label} variant="secondary" className="h-12" onClick={() => downloadFile(new File([encode(t)], `${slug || "drive"}.${extension}`, { type: mime }))}><Download />Export {label}</Button>)}
+        </div>
+        <p className="text-xs text-muted-foreground">CSV: coordinates, elevation (m), UTC timestamp, speed (m/s), grade (%). JSON includes the complete drive.</p>
+      </section>
     </div>
   );
 }

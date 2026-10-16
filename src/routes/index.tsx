@@ -14,6 +14,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Live drive dashboard: speed, elevation, slope grade, distance and time." },
       { property: "og:title", content: "Cockpit — Drivelog" },
       { property: "og:description", content: "Live drive dashboard: speed, elevation, slope grade, distance and time." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Cockpit,

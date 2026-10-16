@@ -44,8 +44,13 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     if (!follow && !fitted.current) {
       fitted.current = true;
       const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lon]));
-      setTimeout(() => { m.invalidateSize(); m.fitBounds(bounds, { padding: [30, 30] }); }, 100);
+      const timer = setTimeout(() => {
+        if (map.current !== m) return;
+        m.invalidateSize(); m.fitBounds(bounds, { padding: [30, 30], animate: false });
+      }, 100);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [points, colorMode, follow, current]);
 
   useEffect(() => {

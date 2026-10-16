@@ -12,6 +12,8 @@ export const Route = createFileRoute("/map")({
       { name: "description", content: "Live GPS route tracking with a color-coded breadcrumb trail." },
       { property: "og:title", content: "Live Map — Drivelog" },
       { property: "og:description", content: "Live GPS route tracking with a color-coded breadcrumb trail." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MapPage,

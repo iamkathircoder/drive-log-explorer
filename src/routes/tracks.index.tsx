@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { Upload, ChevronRight, Route as RouteIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useRecorder } from "@/lib/recorder";
+import { BackupControls } from "@/components/BackupControls";
 import { distUnit, fmtDist, fmtDuration, fmtSpeed, parseTrackFile, saveTrack, speedUnit, stats } from "@/lib/tracks";
 
 export const Route = createFileRoute("/tracks/")({
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/tracks/")({
       { name: "description", content: "Your saved drive logs with distance, duration and speed summaries." },
       { property: "og:title", content: "Saved Tracks — Drivelog" },
       { property: "og:description", content: "Your saved drive logs with distance, duration and speed summaries." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TracksPage,
@@ -62,6 +65,7 @@ function TracksPage() {
           })}
         </ul>
       )}
+      <div className="mt-6"><BackupControls /></div>
     </div>
   );
 }
