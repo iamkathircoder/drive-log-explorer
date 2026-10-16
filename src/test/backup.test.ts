@@ -61,4 +61,12 @@ describe("drive exports and backup", () => {
     share.mockRejectedValue(new DOMException("Cancelled", "AbortError"));
     expect(await shareFile(file)).toBe("cancelled");
   });
+  it("falls back to downloading when file sharing is unsupported", async () => {
+    Object.defineProperty(navigator, "canShare", { configurable: true, value: () => false });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:backup") });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    expect(await shareFile(new File(["{}"], "backup.json", { type: "application/json" }))).toBe("downloaded");
+    expect(click).toHaveBeenCalledOnce();
+  });
 });
