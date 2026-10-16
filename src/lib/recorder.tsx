@@ -16,7 +16,9 @@ type Ctx = {
   start: () => void; pause: () => void; resume: () => void; stop: (name?: string, memo?: string) => Track | null; discard: () => void;
   markers: Marker[]; addMarker: (label?: string) => void; voiceOn: boolean; voiceSupported: boolean; toggleVoice: () => void; weather: Weather | null;
 };
-const RecorderCtx = createContext<Ctx | null>(null);
+// Keep one context across hot reloads so the provider in __root and screens always match.
+const g = globalThis as { __recorderCtx?: React.Context<Ctx | null> };
+const RecorderCtx = (g.__recorderCtx ??= createContext<Ctx | null>(null));
 
 export function RecorderProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("idle");
