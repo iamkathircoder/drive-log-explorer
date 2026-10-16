@@ -2,9 +2,9 @@ export type TrackPoint = { lat: number; lon: number; ele: number | null; t: numb
 export type Track = { id: string; name: string; createdAt: number; points: TrackPoint[]; memo?: string | undefined; raw?: TrackPoint[] | undefined; eleCorrected?: boolean; filters?: FilterInfo | undefined; markers?: import("./extras").Marker[] | undefined; weather?: { start?: import("./extras").Weather | null; end?: import("./extras").Weather | null; samples?: import("./extras").WeatherSample[] } | undefined };
 export type FilterInfo = { kalman: boolean; zupt: boolean; gradeWindow: number; inaccurate: number; jumps: number; removed: number };
 export type Units = "metric" | "imperial";
-export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean; autoStart: boolean; autoPauseSec: number };
+export type Settings = { units: Units; intervalMs: number; highAccuracy: boolean; minDistance: number; maxAccuracy: number; smoothOnSave: boolean; autoStart: boolean; autoPauseSec: number; backupReminder?: boolean };
 
-export const DEFAULT_SETTINGS: Settings = { units: "metric", intervalMs: 1000, highAccuracy: true, minDistance: 2, maxAccuracy: 30, smoothOnSave: true, autoStart: false, autoPauseSec: 120 };
+export const DEFAULT_SETTINGS: Settings = { units: "metric", intervalMs: 1000, highAccuracy: true, minDistance: 2, maxAccuracy: 30, smoothOnSave: true, autoStart: false, autoPauseSec: 120, backupReminder: false };
 const TK = "driveLog.tracks";
 const SK = "driveLog.settings";
 
@@ -19,7 +19,20 @@ export function loadTracks(): Track[] {
   try { return JSON.parse(localStorage.getItem(TK) || "[]"); } catch { return []; }
 }
 function writeTracks(t: Track[]) { localStorage.setItem(TK, JSON.stringify(t)); window.dispatchEvent(new Event("drivelog-tracks")); }
-export function saveTrack(t: Track) { writeTracks([t, ...loadTracks().filter((x) => x.id !== t.id)]); }
+export function saveTrack(t: Track) { writeTracks([t, ...loadTracks().filter((x) => x.id !== t.id)]); window.dispatchEvent(new Event("drivelog-drive-saved")); }
+export function restoreDeviceData(tracks: Track[], settings: Settings) {
+  const previousTracks = localStorage.getItem(TK), previousSettings = localStorage.getItem(SK);
+  try {
+    localStorage.setItem(TK, JSON.stringify(tracks));
+    localStorage.setItem(SK, JSON.stringify(settings));
+  } catch {
+    if (previousTracks === null) localStorage.removeItem(TK); else localStorage.setItem(TK, previousTracks);
+    if (previousSettings === null) localStorage.removeItem(SK); else localStorage.setItem(SK, previousSettings);
+    throw new Error("Not enough device storage. Your existing drives have been kept.");
+  }
+  window.dispatchEvent(new Event("drivelog-tracks"));
+  window.dispatchEvent(new Event("drivelog-settings"));
+}
 export function updateTrack(id: string, patch: Partial<Track>) { writeTracks(loadTracks().map((x) => (x.id === id ? { ...x, ...patch } : x))); }
 export function deleteTrack(id: string) { writeTracks(loadTracks().filter((x) => x.id !== id)); }
 export function clearTracks() { writeTracks([]); }
