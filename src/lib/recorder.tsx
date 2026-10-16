@@ -3,7 +3,7 @@ import { cleanTrack, haversine, loadSettings, loadTracks, saveTrack, GRADE_WINDO
 import { GpsKalman } from "./kalman";
 import { mockRaw } from "./mock";
 import { MotionDetector } from "./motion";
-import { fetchWeather, listen, speak, speechSupported, type Marker, type Weather } from "./extras";
+import { fetchWeather, listen, speak, speechSupported, type Marker, type Weather, weatherAlong } from "./extras";
 import { updateTrack } from "./tracks";
 
 export type FilterStats = { kalman: number; inaccurate: number; jumps: number; zupt: number };
@@ -154,7 +154,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     const t: Track = { id: crypto.randomUUID(), name: name?.trim() || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts, memo: memo?.trim() || undefined, raw: pts !== raw ? raw : undefined, filters: { kalman: true, zupt: true, gradeWindow: GRADE_WINDOW, inaccurate: filt.inaccurate, jumps: filt.jumps, removed: filt.zupt }, markers: mk.length ? mk : undefined };
     saveTrack(t);
     const a = pts[0]!, b = pts.at(-1)!;
-    Promise.all([fetchWeather(a.lat, a.lon, a.t), fetchWeather(b.lat, b.lon, b.t)]).then(([start, end]) => { if (start || end) updateTrack(t.id, { weather: { start, end } }); });
+    weatherAlong(t.points).then((samples) => { if (samples.length) updateTrack(t.id, { weather: { start: samples[0], end: samples.at(-1), samples } }); });
     return t;
   };
 

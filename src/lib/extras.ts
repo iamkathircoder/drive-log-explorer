@@ -40,3 +40,22 @@ export function listen(onCommand: (label: string) => void, onEnd: () => void): (
 }
 
 export function speak(text: string) { try { speechSynthesis.speak(new SpeechSynthesisUtterance(text)); } catch { /* no TTS */ } }
+
+export type WeatherSample = Weather & { lat: number; lon: number };
+/** Indices along a track for weather snapshots: one every `everyMin` minutes, start and end included, max `max`. */
+export function sampleIndices(times: number[], everyMin = 10, max = 12): number[] {
+  if (!times.length) return [];
+  const span = times.at(-1)! - times[0]!, n = Math.min(max, Math.max(2, Math.floor(span / (everyMin * 60000)) + 1));
+  const out: number[] = [];
+  for (let k = 0; k < n; k++) {
+    const target = times[0]! + (span * k) / (n - 1 || 1);
+    let i = out.at(-1) ?? 0; while (i < times.length - 1 && times[i]! < target) i++;
+    if (!out.includes(i)) out.push(i);
+  }
+  return out;
+}
+export async function weatherAlong(pts: { lat: number; lon: number; t: number }[]): Promise<WeatherSample[]> {
+  const idx = sampleIndices(pts.map((p) => p.t));
+  const res = await Promise.all(idx.map(async (i) => { const p = pts[i]!; const w = await fetchWeather(p.lat, p.lon, p.t); return w ? { ...w, at: p.t, lat: p.lat, lon: p.lon } : null; }));
+  return res.filter((x): x is WeatherSample => !!x);
+}
