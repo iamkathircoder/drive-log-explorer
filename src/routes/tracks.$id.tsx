@@ -70,7 +70,7 @@ function TrackDetail() {
   const highlight = hp && hl ? { lat: hp.lat, lon: hp.lon, label: `${labels[hl]}: ${hl === "maxSpeed" ? Math.round(fmtSpeed(data.pr[hi]!.speed, u)) + " " + speedUnit(u) : hl === "steepest" ? data.pr[hi]!.grade.toFixed(1) + "%" : Math.round(fmtEle(data.pr[hi]!.ele ?? 0, u)) + " " + eleUnit(u)}` } : null;
   const tap = (k: string) => () => { setPin(null); setHl(hl === k ? null : k); };
   const wx = t.weather?.samples?.length ? t.weather.samples : ([t.weather?.start, t.weather?.end].filter(Boolean) as WeatherSample[]).map((w, i) => ({ ...w, lat: w.lat ?? (i ? t.points.at(-1)! : t.points[0]!).lat, lon: w.lon ?? (i ? t.points.at(-1)! : t.points[0]!).lon }));
-  const lookWeather = async () => { setWxBusy(true); const samples = await weatherAlong(t.points); setWxBusy(false); if (samples.length) { updateTrack(t.id, { weather: { start: samples[0], end: samples.at(-1), samples } }); toast.success(`${samples.length} weather snapshots added`); } else toast("Weather not available for this date"); };
+  const lookWeather = async () => { setWxBusy(true); const samples = await weatherAlong(t.points); setWxBusy(false); if (samples.length) { updateTrack(t.id, { weather: { start: samples[0] ?? null, end: samples.at(-1) ?? null, samples } }); toast.success(`${samples.length} weather snapshots added`); } else toast("Weather not available for this date"); };
   const saveMarker = (i: number) => { updateTrack(t.id, { markers: t.markers!.map((m, k) => (k === i ? { ...m, label: mName.trim() || m.label } : m)) }); setMEdit(null); };
   const slug = t.name.replace(/[^\w-]+/g, "_");
 

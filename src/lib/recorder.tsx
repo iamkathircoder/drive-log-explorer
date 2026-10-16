@@ -154,7 +154,7 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
     const t: Track = { id: crypto.randomUUID(), name: name?.trim() || `Drive ${new Date(pts[0]!.t).toLocaleString()}`, createdAt: pts[0]!.t, points: pts, memo: memo?.trim() || undefined, raw: pts !== raw ? raw : undefined, filters: { kalman: true, zupt: true, gradeWindow: GRADE_WINDOW, inaccurate: filt.inaccurate, jumps: filt.jumps, removed: filt.zupt }, markers: mk.length ? mk : undefined };
     saveTrack(t);
     const a = pts[0]!, b = pts.at(-1)!;
-    weatherAlong(t.points).then((samples) => { if (samples.length) updateTrack(t.id, { weather: { start: samples[0], end: samples.at(-1), samples } }); });
+    weatherAlong(t.points).then((samples) => { if (samples.length) updateTrack(t.id, { weather: { start: samples[0] ?? null, end: samples.at(-1) ?? null, samples } }); });
     return t;
   };
 
