@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Download, Mountain, Pencil, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Download, Mountain, Pencil, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProfileBars } from "@/components/ProfileBars";
-import { fetchWeather, weatherIcon, weatherLabel } from "@/lib/extras";
+import { type WeatherSample, weatherAlong, weatherIcon, weatherLabel } from "@/lib/extras";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
 import { GRADE_WINDOW, cleanTrack, correctElevation, updateTrack, deleteTrack, distUnit, download, eleUnit, fmtDist, fmtDuration, fmtEle, fmtSpeed, profile, slopeBreakdown, speedUnit, stats, toGPX, toKML } from "@/lib/tracks";
@@ -34,6 +34,10 @@ function TrackDetail() {
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
   const [hl, setHl] = useState<string | null>(null);
+  const [pin, setPin] = useState<{ key: string; lat: number; lon: number; label: string } | null>(null);
+  const [wxBusy, setWxBusy] = useState(false);
+  const [mEdit, setMEdit] = useState<number | null>(null);
+  const [mName, setMName] = useState("");
   const data = useMemo(() => {
     if (!t) return null;
     const pr = profile(t.points);
@@ -64,7 +68,10 @@ function TrackDetail() {
   const hi = hl != null ? targets[hl] ?? -1 : -1;
   const hp = hi >= 0 ? t.points[hi] : undefined;
   const highlight = hp && hl ? { lat: hp.lat, lon: hp.lon, label: `${labels[hl]}: ${hl === "maxSpeed" ? Math.round(fmtSpeed(data.pr[hi]!.speed, u)) + " " + speedUnit(u) : hl === "steepest" ? data.pr[hi]!.grade.toFixed(1) + "%" : Math.round(fmtEle(data.pr[hi]!.ele ?? 0, u)) + " " + eleUnit(u)}` } : null;
-  const tap = (k: string) => () => setHl(hl === k ? null : k);
+  const tap = (k: string) => () => { setPin(null); setHl(hl === k ? null : k); };
+  const wx = t.weather?.samples?.length ? t.weather.samples : ([t.weather?.start, t.weather?.end].filter(Boolean) as WeatherSample[]).map((w, i) => ({ ...w, lat: w.lat ?? (i ? t.points.at(-1)! : t.points[0]!).lat, lon: w.lon ?? (i ? t.points.at(-1)! : t.points[0]!).lon }));
+  const lookWeather = async () => { setWxBusy(true); const samples = await weatherAlong(t.points); setWxBusy(false); if (samples.length) { updateTrack(t.id, { weather: { start: samples[0] ?? null, end: samples.at(-1) ?? null, samples } }); toast.success(`${samples.length} weather snapshots added`); } else toast("Weather not available for this date"); };
+  const saveMarker = (i: number) => { updateTrack(t.id, { markers: t.markers!.map((m, k) => (k === i ? { ...m, label: mName.trim() || m.label } : m)) }); setMEdit(null); };
   const slug = t.name.replace(/[^\w-]+/g, "_");
 
   return (
@@ -95,7 +102,7 @@ function TrackDetail() {
       )}
 
       <div className="relative h-56 overflow-hidden rounded-xl border border-border">
-        <LazyMap points={t.points} follow={false} colorMode={mode} highlight={highlight} />
+        <LazyMap points={t.points} follow={false} colorMode={mode} highlight={pin ?? highlight} />
         <div className="absolute right-2 top-2 z-[500] flex rounded-full bg-card/90 p-1 text-[11px] font-semibold uppercase">
           {(["elevation", "speed"] as const).map((m) => <button key={m} onClick={() => setMode(m)} className={`rounded-full px-2.5 py-1 ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{m}</button>)}
         </div>
@@ -127,27 +134,64 @@ function TrackDetail() {
       </Chart>
 
       <section className="rounded-xl border border-border bg-card p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weather on the trip</h2>
-        {t.weather && (t.weather.start || t.weather.end) ? (
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            {(["start", "end"] as const).map((k) => { const w = t.weather![k]; return (
-              <div key={k} className="rounded-lg bg-secondary p-2"><p className="text-[10px] uppercase text-muted-foreground">{k}</p>
-                {w ? <><p className="text-lg font-semibold">{weatherIcon(w.code)} {Math.round(w.temp)}°C</p><p className="text-xs text-muted-foreground">{weatherLabel(w.code)} · {Math.round(w.wind)} km/h · {w.rain} mm</p></> : <p className="text-xs">—</p>}
-              </div>); })}
-          </div>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weather along the drive</h2>
+          {wx.length > 0 && <button disabled={wxBusy} onClick={lookWeather} className="text-[11px] font-semibold text-primary">{wxBusy ? "Loading…" : "Refresh"}</button>}
+        </div>
+        {wx.length ? (
+          <>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {wx.map((w, i) => (
+                <button key={i} onClick={() => setPin(pin?.key === `w${i}` ? null : { key: `w${i}`, lat: w.lat, lon: w.lon, label: `${weatherIcon(w.code)} ${Math.round(w.temp)}°C · ${new Date(w.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` })}
+                  className={`min-w-[84px] shrink-0 rounded-lg border p-2 text-left ${pin?.key === `w${i}` ? "border-primary ring-1 ring-primary" : "border-transparent bg-secondary"}`}>
+                  <p className="font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground">{new Date(w.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                  <p className="text-lg font-semibold">{weatherIcon(w.code)} {Math.round(w.temp)}°</p>
+                  <p className="truncate text-[10px] text-muted-foreground">{weatherLabel(w.code)}</p>
+                  <p className="text-[10px] text-muted-foreground">{Math.round(w.wind)} km/h · {w.rain} mm</p>
+                </button>
+              ))}
+            </div>
+            {wx.length > 1 && <div className="mt-2 h-24"><ResponsiveContainer width="100%" height="100%">
+              <BarChart data={wx.map((w) => ({ time: new Date(w.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), temp: +w.temp.toFixed(1), rain: w.rain }))}>
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: "var(--color-muted-foreground)" }} />
+                <YAxis width={28} tick={{ fontSize: 9, fill: "var(--color-muted-foreground)" }} />
+                <Tooltip {...tip} cursor={{ fill: "var(--color-accent)" }} />
+                <Bar dataKey="temp" name="°C" fill="var(--color-chart-4)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rain" name="Rain mm" fill="var(--color-chart-2)" radius={[3, 3, 0, 0]} />
+              </BarChart></ResponsiveContainer></div>}
+            <p className="mt-1 text-[11px] text-muted-foreground">Tap a snapshot to see where it was on the map.</p>
+          </>
         ) : (
-          <button onClick={async () => { const a = t.points[0]!, b = t.points.at(-1)!; const [start, end] = await Promise.all([fetchWeather(a.lat, a.lon, a.t), fetchWeather(b.lat, b.lon, b.t)]); if (start || end) { updateTrack(t.id, { weather: { start, end } }); toast.success("Weather added"); } else toast("Weather not available for this date"); }} className="h-10 w-full rounded-lg bg-secondary text-sm font-semibold">Look up weather</button>
+          <button disabled={wxBusy} onClick={lookWeather} className="h-10 w-full rounded-lg bg-secondary text-sm font-semibold">{wxBusy ? "Loading…" : "Look up weather along the route"}</button>
         )}
       </section>
 
-      {t.markers?.length ? (
-        <section className="rounded-xl border border-border bg-card p-3">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Markers ({t.markers.length})</h2>
-          <ul className="space-y-1 text-sm">
-            {t.markers.map((m, i) => <li key={i} className="flex justify-between"><span>📍 {m.label}</span><a className="font-[family-name:var(--font-mono)] text-xs text-primary" href={`https://www.openstreetmap.org/?mlat=${m.lat}&mlon=${m.lon}#map=17/${m.lat}/${m.lon}`} target="_blank" rel="noreferrer">{new Date(m.t).toLocaleTimeString()}</a></li>)}
+      <section className="rounded-xl border border-border bg-card p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Markers ({t.markers?.length ?? 0})</h2>
+        {t.markers?.length ? (
+          <ul className="space-y-1.5 text-sm">
+            {t.markers.map((m, i) => (
+              <li key={i} className={`flex items-center gap-2 rounded-lg p-1.5 ${pin?.key === `m${i}` ? "bg-primary/15" : ""}`}>
+                {mEdit === i ? (
+                  <>
+                    <input autoFocus value={mName} onChange={(e) => setMName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveMarker(i)} className="h-9 flex-1 rounded-md border border-border bg-background px-2" />
+                    <button aria-label="Save marker" onClick={() => saveMarker(i)} className="rounded-md bg-primary p-2 text-primary-foreground"><Check className="h-4 w-4" /></button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setPin(pin?.key === `m${i}` ? null : { key: `m${i}`, lat: m.lat, lon: m.lon, label: m.label })} className="min-w-0 flex-1 text-left">
+                      <span className="block truncate">📍 {m.label}</span>
+                      <span className="font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground">{new Date(m.t).toLocaleTimeString()}</span>
+                    </button>
+                    <button aria-label="Rename marker" onClick={() => { setMEdit(i); setMName(m.label); }} className="rounded-md bg-secondary p-2"><Pencil className="h-4 w-4" /></button>
+                    <button aria-label="Remove marker" onClick={() => { if (confirm(`Remove "${m.label}"?`)) { updateTrack(t.id, { markers: t.markers!.filter((_, k) => k !== i) }); if (pin?.key === `m${i}`) setPin(null); toast("Marker removed"); } }} className="rounded-md bg-secondary p-2 text-destructive"><Trash2 className="h-4 w-4" /></button>
+                  </>
+                )}
+              </li>
+            ))}
           </ul>
-        </section>
-      ) : null}
+        ) : <p className="text-xs text-muted-foreground">No markers. Say "mark …" or tap Mark while recording.</p>}
+      </section>
 
       <section className="rounded-xl border border-border bg-card p-3">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filters applied</h2>
