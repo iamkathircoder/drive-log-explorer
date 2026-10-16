@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { RecorderProvider } from "@/lib/recorder";
 import { BottomNav } from "@/components/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
+import { BackupReminder } from "@/components/BackupControls";
 
 function NotFoundComponent() {
   return (
@@ -97,6 +98,7 @@ function RootComponent() {
         </div>
         <BottomNav />
         <Toaster />
+        <BackupReminder />
       </RecorderProvider>
     </QueryClientProvider>
   );
