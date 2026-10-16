@@ -50,6 +50,7 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
       }, 100);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [points, colorMode, follow, current]);
 
   useEffect(() => {
