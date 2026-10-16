@@ -164,5 +164,12 @@ export function RecorderProvider({ children }: { children: ReactNode }) {
 }
 
 export function useRecorder() {
-  const c = useContext(RecorderCtx); if (!c) throw new Error("useRecorder outside provider"); return c;
+  const c = useContext(RecorderCtx);
+  if (!c) {
+    // A hot reload can leave screens and the provider on different copies; reload once instead of a blank screen.
+    if (import.meta.hot && typeof window !== "undefined" && !sessionStorage.getItem("drivelog.reloaded")) { sessionStorage.setItem("drivelog.reloaded", "1"); window.location.reload(); }
+    throw new Error("useRecorder outside provider");
+  }
+  if (typeof window !== "undefined") sessionStorage.removeItem("drivelog.reloaded");
+  return c;
 }
