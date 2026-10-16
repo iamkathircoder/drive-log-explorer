@@ -55,7 +55,7 @@ export async function shareFile(file: File): Promise<"shared" | "downloaded" | "
       await navigator.share({ files: [file], title: "Drivelog backup" });
       return "shared";
     }
-  } catch (error) { if (error instanceof Error && error.name === "AbortError") return "cancelled"; }
+  } catch (error) { if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") return "cancelled"; }
   downloadFile(file); return "downloaded";
 }
 export function backupFile() {
