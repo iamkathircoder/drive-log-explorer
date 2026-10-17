@@ -32,7 +32,7 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
 
   const hlIdx = useMemo(() => {
     if (highlightD == null) return -1;
-    const b = bucketize(points, bars); return const i = b.findIndex((x) => x.d >= highlightD - 1e-6); return i >= 0 ? i : b.length - 1;
+    const b = bucketize(points, bars); const i = b.findIndex((x) => x.d >= highlightD - 1e-6); return i >= 0 ? i : b.length - 1;
   }, [points, bars, highlightD]);
   const [order, setOrder] = useState<Metric[]>(metrics);
   const [hidden, setHidden] = useState<Metric[]>([]);
