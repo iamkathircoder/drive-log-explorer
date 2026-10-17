@@ -21,9 +21,10 @@ export function bucketize(points: TrackPoint[], bars: number) {
   return out.filter((b) => b.n > 0).map((b) => ({ d: b.d, ele: b.eleN ? b.ele / b.eleN : null, speed: b.speed / b.n, grade: b.grade / b.n }));
 }
 
-export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation", "speed", "slope"], tabs = false, highlightD = null }: { points: TrackPoint[]; units: Units; bars?: number; metrics?: Metric[]; tabs?: boolean; highlightD?: number | null }) {
+export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation", "speed", "slope"], tabs = false, highlightD = null, onPick }: { points: TrackPoint[]; units: Units; bars?: number; metrics?: Metric[]; tabs?: boolean; highlightD?: number | null; onPick?: (meters: number) => void }) {
   const [active, setActive] = useState<Metric>(metrics[0]!);
   const data = useMemo(() => bucketize(points, bars).map((b) => ({
+    dm: b.d,
     d: +fmtDist(b.d, u).toFixed(2),
     elevation: b.ele != null ? Math.round(fmtEle(b.ele, u)) : 0,
     speed: Math.round(fmtSpeed(b.speed, u)),
@@ -79,7 +80,7 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Waiting for data…</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data} syncId="drive-profile" margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <ComposedChart data={data} syncId="drive-profile" margin={{ top: 6, right: 8, left: 0, bottom: 0 }} onClick={(s: unknown) => { const i = (s as { activeTooltipIndex?: number | string } | null)?.activeTooltipIndex; const row = i != null ? data[Number(i)] : undefined; if (row && onPick) onPick(row.dm); }}>
                   <defs>
                     <linearGradient id={`fill-${m}`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={meta[m].color} stopOpacity={0.45} />
