@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { distUnit, eleUnit, fmtDist, fmtEle, fmtSpeed, profile, speedUnit, type TrackPoint, type Units } from "@/lib/tracks";
 
 type Metric = "elevation" | "speed" | "slope";
-const tip = { contentStyle: { background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }, cursor: { fill: "var(--color-accent)" } };
+const tip = { contentStyle: { background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }, cursor: { stroke: "var(--color-foreground)", strokeWidth: 1, strokeDasharray: "4 3" } };
 
 /** Averages the track into equal-distance buckets so each bar is one stretch of road. */
 export function bucketize(points: TrackPoint[], bars: number) {
@@ -40,6 +40,8 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
     slope: { title: "Slope (%)", color: "var(--color-chart-3)" },
   };
 
+  const hlX = hlIdx >= 0 ? data[hlIdx]?.d : undefined;
+
   return (
     <div className="space-y-3">
       {tabs && (
@@ -52,22 +54,26 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
       {shown.map((m) => (
         <section key={m} className="rounded-xl border border-border bg-card p-3">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{meta[m].title}</h2>
-          <div className="h-40">
+          <div className="h-40 touch-pan-y select-none">
             {data.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Waiting for data…</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} barCategoryGap={1}>
+                <LineChart data={data} syncId="drive-profile" margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id={`fill-${m}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={meta[m].color} stopOpacity={0.35} />
+                      <stop offset="100%" stopColor={meta[m].color} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                  <XAxis dataKey="d" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit={distUnit(u)} minTickGap={24} />
+                  <XAxis dataKey="d" type="number" domain={["dataMin", "dataMax"]} tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit={distUnit(u)} minTickGap={24} />
                   <YAxis width={38} domain={m === "elevation" ? ["dataMin - 5", "auto"] : ["auto", "auto"]} allowDataOverflow tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} />
+                  {m === "slope" && <ReferenceLine y={0} stroke="var(--color-muted-foreground)" strokeDasharray="3 3" />}
+                  {hlX != null && <ReferenceLine x={hlX} stroke="var(--color-foreground)" strokeWidth={2} />}
                   <Tooltip {...tip} labelFormatter={(v) => `${v} ${distUnit(u)}`} />
-                  <Bar dataKey={m} fill={meta[m].color} radius={[3, 3, 0, 0]} isAnimationActive={false}>
-                    {(m === "slope" || hlIdx >= 0) && data.map((row, i) => (
-                      <Cell key={i} fill={i === hlIdx ? "var(--color-foreground)" : m !== "slope" ? meta[m].color : row.slope > 8 || row.slope < -8 ? "var(--color-destructive)" : row.slope >= 0 ? "var(--color-chart-1)" : "var(--color-chart-3)"} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                  <Line type="monotone" dataKey={m} stroke={meta[m].color} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: "var(--color-background)", strokeWidth: 2 }} isAnimationActive={false} fill={`url(#fill-${m})`} />
+                </LineChart>
               </ResponsiveContainer>
             )}
           </div>
