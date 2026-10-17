@@ -11,7 +11,8 @@ function ramp(v: number) {
   return `hsl(${h} 90% 50%)`;
 }
 
-export default function TrackMap({ points, current, follow = true, colorMode = "speed", recenterKey = 0, highlight = null }: { points: TrackPoint[]; current?: TrackPoint | null; follow?: boolean; colorMode?: ColorMode; recenterKey?: number; highlight?: { lat: number; lon: number; label: string } | null }) {
+export default function TrackMap({ points, current, follow = true, colorMode = "speed", recenterKey = 0, highlight = null, onPick }: { points: TrackPoint[]; current?: TrackPoint | null; follow?: boolean; colorMode?: ColorMode; recenterKey?: number; highlight?: { lat: number; lon: number; label: string } | null; onPick?: (lat: number, lon: number) => void }) {
+  const pickRef = useRef(onPick); pickRef.current = onPick;
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -24,6 +25,7 @@ export default function TrackMap({ points, current, follow = true, colorMode = "
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
     map.current = m;
+    m.on("click", (e: L.LeafletMouseEvent) => pickRef.current?.(e.latlng.lat, e.latlng.lng));
     fitted.current = false;
     marker.current = null;
     return () => { m.remove(); map.current = null; };
