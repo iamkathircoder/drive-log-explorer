@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, SlidersHorizontal } from "lucide-react";
+import { Area, CartesianGrid, ComposedChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { distUnit, eleUnit, fmtDist, fmtEle, fmtSpeed, profile, speedUnit, type TrackPoint, type Units } from "@/lib/tracks";
 
 type Metric = "elevation" | "speed" | "slope";
@@ -31,9 +32,16 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
 
   const hlIdx = useMemo(() => {
     if (highlightD == null) return -1;
-    const b = bucketize(points, bars); return b.findIndex((x) => x.d >= highlightD);
+    const b = bucketize(points, bars); return const i = b.findIndex((x) => x.d >= highlightD - 1e-6); return i >= 0 ? i : b.length - 1;
   }, [points, bars, highlightD]);
-  const shown = tabs ? [active] : metrics;
+  const [order, setOrder] = useState<Metric[]>(metrics);
+  const [hidden, setHidden] = useState<Metric[]>([]);
+  const [edit, setEdit] = useState(false);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("driveLog.charts") || "null"); if (v?.order) { setOrder([...v.order.filter((m: Metric) => metrics.includes(m)), ...metrics.filter((m) => !v.order.includes(m))]); setHidden(v.hidden ?? []); } } catch { /* ignore */ } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const persist = (o: Metric[], h: Metric[]) => { setOrder(o); setHidden(h); localStorage.setItem("driveLog.charts", JSON.stringify({ order: o, hidden: h })); };
+  const move = (i: number, dir: -1 | 1) => { const o = [...order]; const j = i + dir; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j]!, o[i]!]; persist(o, hidden); };
+  const toggle = (m: Metric) => persist(order, hidden.includes(m) ? hidden.filter((x) => x !== m) : [...hidden, m]);
+  const shown = tabs ? [active] : order.filter((m) => !hidden.includes(m));
   const meta: Record<Metric, { title: string; color: string }> = {
     elevation: { title: `Elevation (${eleUnit(u)})`, color: "var(--color-chart-2)" },
     speed: { title: `Speed (${speedUnit(u)})`, color: "var(--color-chart-1)" },
@@ -51,29 +59,48 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
           ))}
         </div>
       )}
+      {!tabs && (
+        <div className="rounded-xl border border-border bg-card/60 p-2 backdrop-blur">
+          <button onClick={() => setEdit(!edit)} className="flex w-full items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"><SlidersHorizontal className="h-4 w-4" />Arrange graphs{hidden.length ? ` · ${hidden.length} hidden` : ""}<ChevronDown className={`ml-auto h-4 w-4 transition ${edit ? "rotate-180" : ""}`} /></button>
+          {edit && <ul className="mt-2 space-y-1">{order.map((m, i) => (
+            <li key={m} className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1 text-sm">
+              <span className={`flex-1 capitalize ${hidden.includes(m) ? "text-muted-foreground line-through" : ""}`}>{m}</span>
+              <button aria-label={`Move ${m} up`} disabled={i === 0} onClick={() => move(i, -1)} className="rounded p-1.5 disabled:opacity-30"><ChevronUp className="h-4 w-4" /></button>
+              <button aria-label={`Move ${m} down`} disabled={i === order.length - 1} onClick={() => move(i, 1)} className="rounded p-1.5 disabled:opacity-30"><ChevronDown className="h-4 w-4" /></button>
+              <button aria-label={hidden.includes(m) ? `Show ${m}` : `Hide ${m}`} onClick={() => toggle(m)} className="rounded p-1.5">{hidden.includes(m) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</button>
+            </li>))}</ul>}
+        </div>
+      )}
       {shown.map((m) => (
-        <section key={m} className="rounded-xl border border-border bg-card p-3">
+        <section key={m} className="rounded-xl border border-border bg-card/70 p-3 shadow-lg backdrop-blur-md">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{meta[m].title}</h2>
           <div className="h-40 touch-pan-y select-none">
             {data.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Waiting for data…</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} syncId="drive-profile" margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <ComposedChart data={data} syncId="drive-profile" margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id={`fill-${m}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={meta[m].color} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={meta[m].color} stopOpacity={0} />
+                      <stop offset="0%" stopColor={meta[m].color} stopOpacity={0.45} />
+                      <stop offset="60%" stopColor={meta[m].color} stopOpacity={0.12} />
+                      <stop offset="100%" stopColor={meta[m].color} stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id={`gloss-${m}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-foreground)" stopOpacity={0.18} />
+                      <stop offset="25%" stopColor="var(--color-foreground)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
                   <XAxis dataKey="d" type="number" domain={["dataMin", "dataMax"]} tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} unit={distUnit(u)} minTickGap={24} />
                   <YAxis width={38} domain={m === "elevation" ? ["dataMin - 5", "auto"] : ["auto", "auto"]} allowDataOverflow tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} />
                   {m === "slope" && <ReferenceLine y={0} stroke="var(--color-muted-foreground)" strokeDasharray="3 3" />}
-                  {hlX != null && <ReferenceLine x={hlX} stroke="var(--color-foreground)" strokeWidth={2} />}
+                  {hlX != null && <ReferenceLine x={hlX} stroke="var(--color-chart-5)" strokeWidth={2} ifOverflow="extendDomain" />}
+                  {hlX != null && data[hlIdx] && <ReferenceDot x={hlX} y={data[hlIdx]![m]} r={6} fill="var(--color-chart-5)" stroke="var(--color-background)" strokeWidth={2} ifOverflow="extendDomain" />}
                   <Tooltip {...tip} labelFormatter={(v) => `${v} ${distUnit(u)}`} />
-                  <Line type="monotone" dataKey={m} stroke={meta[m].color} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: "var(--color-background)", strokeWidth: 2 }} isAnimationActive={false} fill={`url(#fill-${m})`} />
-                </LineChart>
+                  <Area type="monotone" dataKey={m} baseValue={m === "slope" ? 0 : "dataMin"} stroke={meta[m].color} strokeWidth={2.5} fill={`url(#fill-${m})`} dot={false} activeDot={{ r: 5, stroke: "var(--color-background)", strokeWidth: 2 }} isAnimationActive={false} />
+                  <Area type="monotone" dataKey={m} baseValue={m === "slope" ? 0 : "dataMin"} stroke="none" fill={`url(#gloss-${m})`} isAnimationActive={false} activeDot={false} tooltipType="none" />
+                </ComposedChart>
               </ResponsiveContainer>
             )}
           </div>
