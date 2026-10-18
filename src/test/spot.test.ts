@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { indexAtDistance, mapsUrl, nearestIndex, spotAt, spotGeoJSON, spotGPX } from "@/lib/spot";
 
-const pts = [{ lat: 11, lon: 76, ele: 100, t: 0 }, { lat: 11.001, lon: 76, ele: 110, t: 1000 }, { lat: 11.002, lon: 76, ele: 120, t: 2000 }];
+const pts = [{ lat: 11, lon: 76, ele: 100, t: 0 }, { lat: 11.001, lon: 76, ele: 110, t: 1000 }, { lat: 11.002, lon: 76, ele: 120, t: 2000 }].map((p) => ({ ...p, speed: null, acc: 5 })) as unknown as import("@/lib/tracks").TrackPoint[];
 const pr = [{ d: 0, speed: 0, grade: 0, ele: 100 }, { d: 111, speed: 10, grade: 9, ele: 110 }, { d: 222, speed: 12, grade: 9, ele: 120 }];
 
 describe("spot picker", () => {
