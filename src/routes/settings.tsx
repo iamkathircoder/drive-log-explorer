@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -32,7 +33,7 @@ function SettingsPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold uppercase">Settings</h1>
+      <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold">Settings</h1>
 
       <Group title="Units">
         <Seg options={[["metric", "Metric · km/h"], ["imperial", "Imperial · mph"]]} value={settings.units} onChange={(v) => set({ units: v as Settings["units"] })} />
@@ -69,7 +70,7 @@ function SettingsPage() {
       </Group>
 
       <Group title="Active GPS filters">
-        <ul className="space-y-2 text-sm">
+        <ul className="divide-y divide-border text-sm [&>li]:py-3">
           <li><span className="font-medium">Kalman filter</span><span className="block text-xs text-muted-foreground">Smooths live position and speed; trusts each fix by its reported accuracy and rejects impossible jumps.</span></li>
           <li><span className="font-medium">Stop lock (ZUPT)</span><span className="block text-xs text-muted-foreground">Below ~1.8 km/h the position is held, so idling adds no distance or slope noise.</span></li>
           <li><span className="font-medium">Grade window · {GRADE_WINDOW} m</span><span className="block text-xs text-muted-foreground">Slope is measured over a rolling stretch of road for steady percentages.</span></li>
@@ -77,7 +78,7 @@ function SettingsPage() {
       </Group>
 
       <Group title="Sample data">
-        <button onClick={() => { mockTracks().forEach(saveTrack); toast.success("2 sample drives added to Tracks"); }} className="h-11 w-full rounded-lg bg-secondary font-semibold">Add sample drives</button>
+        <Button variant="ghost" onClick={() => { mockTracks().forEach(saveTrack); toast.success("2 sample drives added to Tracks"); }} className="h-11 w-full rounded-lg bg-secondary font-semibold">Add sample drives</Button>
         <p className="mt-2 text-xs text-muted-foreground">For a live preview, tap Demo on the Record screen.</p>
       </Group>
 
@@ -86,7 +87,7 @@ function SettingsPage() {
       <Group title="Storage">
         <div className="flex justify-between text-sm"><span>Saved tracks</span><span className="font-[family-name:var(--font-mono)]">{tracks.length}</span></div>
         <div className="mt-1 flex justify-between text-sm"><span>Space used</span><span className="font-[family-name:var(--font-mono)]">{(bytes / 1024).toFixed(1)} KB</span></div>
-        <button onClick={() => { if (confirm("Delete all saved tracks? This cannot be undone.")) { clearTracks(); toast.success("All tracks deleted"); } }} className="mt-4 h-11 w-full rounded-lg bg-destructive/15 font-semibold text-destructive">Delete all tracks</button>
+        <Button variant="ghost" onClick={() => { if (confirm("Delete all saved tracks? This cannot be undone.")) { clearTracks(); toast.success("All tracks deleted"); } }} className="mt-4 h-11 w-full rounded-lg bg-destructive/15 font-semibold text-destructive">Delete all tracks</Button>
       </Group>
       <p className="text-center text-xs text-muted-foreground">Tracks are stored on this device only.</p>
     </div>
@@ -94,16 +95,16 @@ function SettingsPage() {
 }
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="rounded-xl border border-border bg-card p-4">
-    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary">{title}</h2>
+  <section className="m3-settings-items rounded-3xl bg-surface-container-low p-5 shadow-tonal">
+    <h2 className="mb-3 m3-section-title">{title}</h2>
     {children}
   </section>
 );
 function Seg({ options, value, onChange }: { options: [string, string][]; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="flex rounded-lg bg-secondary p-1">
+    <div className="flex rounded-full bg-surface-container-high p-1">
       {options.map(([v, l]) => (
-        <button key={v} onClick={() => onChange(v)} className={`flex-1 rounded-md py-2 text-sm font-medium ${value === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{l}</button>
+        <Button variant="ghost" key={v} onClick={() => onChange(v)} className={`min-w-0 flex-1 rounded-full px-2 py-2 text-sm font-medium ${value === v ? "bg-primary-container text-on-primary-container" : "text-muted-foreground"}`}>{l}</Button>
       ))}
     </div>
   );

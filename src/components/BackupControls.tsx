@@ -52,12 +52,12 @@ export function BackupControls({ showReminder = false }: { showReminder?: boolea
     <p className="text-xs text-muted-foreground">{tracks.length} saved drives · Includes settings, original GPS points, weather and markers.</p>
     <p className="text-xs text-muted-foreground">Cloud save opens your phone’s share sheet. Choose Drive, Dropbox, email or another installed app. No automatic cloud sync.</p>
     {status !== "idle" && <p className="text-xs text-muted-foreground">Finish or discard the current drive before restoring.</p>}
-    {showReminder && <label className="flex items-center justify-between gap-3 text-sm"><span>Remind me to back up after saving</span><Switch checked={settings.backupReminder ?? false} onCheckedChange={(checked) => saveSettings({ ...settings, backupReminder: checked })} /></label>}
+    {showReminder && <label className="flex min-h-14 items-center justify-between gap-3 border-t border-border pt-3 text-sm"><span>Remind me to back up after saving</span><Switch className="shrink-0" checked={settings.backupReminder ?? false} onCheckedChange={(checked) => saveSettings({ ...settings, backupReminder: checked })} /></label>}
     <Dialog open={!!pending} onOpenChange={(open) => { if (!open) setPending(null); }}>
-      <DialogContent className="max-w-[calc(100%-2rem)] rounded-lg sm:max-w-md">
+      <DialogContent className="max-w-[calc(100%-2rem)] rounded-3xl border-0 bg-surface-container-high sm:max-w-md">
         <DialogTitle>Restore backup</DialogTitle>
         <DialogDescription>{pending?.tracks.length ?? 0} drives · {pending ? new Date(pending.exportedAt).toLocaleString() : ""}</DialogDescription>
-        <fieldset className="space-y-3">
+        <fieldset className="divide-y divide-border [&>label]:min-h-14 [&>label]:py-3">
           <legend className="sr-only">Restore mode</legend>
           <label className="flex items-start gap-2"><input type="radio" name="restore-mode" checked={mode === "merge"} onChange={() => setMode("merge")} className="mt-1 accent-primary" /><span className="text-sm">Merge<span className="block text-xs text-muted-foreground">Add missing drives. Keep existing drives and current settings.</span></span></label>
           <label className="flex items-start gap-2"><input type="radio" name="restore-mode" checked={mode === "replace"} onChange={() => setMode("replace")} className="mt-1 accent-primary" /><span className="text-sm">Replace everything<span className="block text-xs text-destructive">Delete all {tracks.length} current drives and replace settings with this backup.</span></span></label>

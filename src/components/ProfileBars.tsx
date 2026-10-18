@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Eye, EyeOff, SlidersHorizontal } from "lucide-react";
 import { Area, CartesianGrid, ComposedChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -54,27 +55,27 @@ export function ProfileBars({ points, units: u, bars = 40, metrics = ["elevation
   return (
     <div className="space-y-3">
       {tabs && (
-        <div className="flex rounded-lg bg-secondary p-1">
+        <div className="flex rounded-full bg-surface-container-high p-1">
           {metrics.map((m) => (
-            <button key={m} onClick={() => setActive(m)} className={`flex-1 rounded-md py-1.5 text-xs font-semibold uppercase ${active === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{m}</button>
+            <Button variant="ghost" key={m} onClick={() => setActive(m)} className={`min-w-0 flex-1 rounded-full px-2 py-1.5 text-xs font-semibold capitalize ${active === m ? "bg-primary-container text-on-primary-container" : "text-muted-foreground"}`}>{m}</Button>
           ))}
         </div>
       )}
       {!tabs && (
-        <div className="rounded-xl border border-border bg-card/60 p-2 backdrop-blur">
-          <button onClick={() => setEdit(!edit)} className="flex w-full items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"><SlidersHorizontal className="h-4 w-4" />Arrange graphs{hidden.length ? ` · ${hidden.length} hidden` : ""}<ChevronDown className={`ml-auto h-4 w-4 transition ${edit ? "rotate-180" : ""}`} /></button>
+        <div className="rounded-2xl bg-surface-container p-3 backdrop-blur">
+          <Button variant="ghost" onClick={() => setEdit(!edit)} className="flex w-full items-center gap-2 px-1 text-sm font-semibold text-muted-foreground"><SlidersHorizontal className="h-4 w-4" />Arrange graphs{hidden.length ? ` · ${hidden.length} hidden` : ""}<ChevronDown className={`ml-auto h-4 w-4 transition ${edit ? "rotate-180" : ""}`} /></Button>
           {edit && <ul className="mt-2 space-y-1">{order.map((m, i) => (
-            <li key={m} className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1 text-sm">
+            <li key={m} className="flex items-center gap-1 rounded-2xl bg-secondary px-2 py-1 text-sm">
               <span className={`flex-1 capitalize ${hidden.includes(m) ? "text-muted-foreground line-through" : ""}`}>{m}</span>
-              <button aria-label={`Move ${m} up`} disabled={i === 0} onClick={() => move(i, -1)} className="rounded p-1.5 disabled:opacity-30"><ChevronUp className="h-4 w-4" /></button>
-              <button aria-label={`Move ${m} down`} disabled={i === order.length - 1} onClick={() => move(i, 1)} className="rounded p-1.5 disabled:opacity-30"><ChevronDown className="h-4 w-4" /></button>
-              <button aria-label={hidden.includes(m) ? `Show ${m}` : `Hide ${m}`} onClick={() => toggle(m)} className="rounded p-1.5">{hidden.includes(m) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</button>
+              <Button variant="ghost" size="icon" aria-label={`Move ${m} up`} disabled={i === 0} onClick={() => move(i, -1)} className="disabled:opacity-30"><ChevronUp className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label={`Move ${m} down`} disabled={i === order.length - 1} onClick={() => move(i, 1)} className="disabled:opacity-30"><ChevronDown className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label={hidden.includes(m) ? `Show ${m}` : `Hide ${m}`} onClick={() => toggle(m)}>{hidden.includes(m) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</Button>
             </li>))}</ul>}
         </div>
       )}
       {shown.map((m) => (
-        <section key={m} className="rounded-xl border border-border bg-card/70 p-3 shadow-lg backdrop-blur-md">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{meta[m].title}</h2>
+        <section key={m} className="rounded-3xl bg-surface-container-low/90 p-4 shadow-tonal backdrop-blur-md">
+          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{meta[m].title}</h2>
           <div className="h-40 touch-pan-y select-none">
             {data.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Waiting for data…</div>

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef } from "react";
 import { Upload, ChevronRight, Route as RouteIcon } from "lucide-react";
@@ -32,8 +33,8 @@ function TracksPage() {
   return (
     <div className="p-4">
       <header className="mb-4 flex items-center justify-between">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold uppercase">Tracks</h1>
-        <button onClick={() => file.current?.click()} className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm font-medium"><Upload className="h-4 w-4" />Import GPX/KML</button>
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold">Tracks</h1>
+        <Button variant="ghost" onClick={() => file.current?.click()} className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm font-medium"><Upload className="h-4 w-4" />Import GPX/KML</Button>
         <input ref={file} type="file" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml" hidden onChange={(e) => onImport(e.target.files?.[0])} />
       </header>
       {tracks.length === 0 ? (
@@ -47,11 +48,11 @@ function TracksPage() {
             const s = stats(t.points);
             return (
               <li key={t.id}>
-                <Link to="/tracks/$id" params={{ id: t.id }} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 active:bg-accent">
+                <Link to="/tracks/$id" params={{ id: t.id }} className="m3-touch flex items-center gap-3 rounded-2xl bg-surface-container-low shadow-tonal p-4 active:bg-accent">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{t.name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleString()}</p>
-                    <div className="mt-2 grid grid-cols-4 gap-2 font-[family-name:var(--font-mono)] text-sm">
+                    <div className="mt-3 border-t border-border pt-3 grid grid-cols-4 gap-2 font-[family-name:var(--font-mono)] text-sm">
                       <Mini l="Dist" v={`${fmtDist(s.distance, u).toFixed(1)}${distUnit(u)}`} />
                       <Mini l="Time" v={fmtDuration(s.duration)} />
                       <Mini l="Avg" v={`${Math.round(fmtSpeed(s.avgSpeed, u))}`} />
@@ -70,5 +71,5 @@ function TracksPage() {
   );
 }
 const Mini = ({ l, v }: { l: string; v: string }) => (
-  <div><p className="font-sans text-[10px] uppercase tracking-wider text-muted-foreground">{l}</p><p className="font-bold">{v}</p></div>
+  <div><p className="font-sans text-xs font-medium text-muted-foreground">{l}</p><p className="font-bold">{v}</p></div>
 );
