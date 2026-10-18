@@ -44,6 +44,13 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-success: var(--success);
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --shadow-tonal: var(--tonal-shadow);
   --font-sans: "Barlow", system-ui, sans-serif;
   --font-display: "Barlow Condensed", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -66,19 +73,27 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;
+  --surface: oklch(0.16 0.01 250);
+  --surface-container-low: oklch(0.21 0.012 250);
+  --surface-container: oklch(0.25 0.012 250);
+  --surface-container-high: oklch(0.29 0.014 250);
+  --primary-container: oklch(0.34 0.06 75);
+  --on-primary-container: oklch(0.9 0.12 75);
+  --tonal-shadow: 0 2px 8px oklch(0.08 0.005 250 / 15%);
+  --route-gradient: linear-gradient(90deg, var(--chart-3), var(--chart-1), var(--chart-4));
   --background: oklch(0.16 0.01 250);
   --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.21 0.012 250);
+  --card: var(--surface-container-low);
   --card-foreground: oklch(0.96 0.005 250);
   --popover: oklch(0.21 0.012 250);
   --popover-foreground: oklch(0.96 0.005 250);
   --primary: oklch(0.8 0.17 75);
   --primary-foreground: oklch(0.18 0.02 75);
-  --secondary: oklch(0.27 0.012 250);
+  --secondary: var(--surface-container-high);
   --secondary-foreground: oklch(0.96 0.005 250);
   --muted: oklch(0.25 0.01 250);
-  --muted-foreground: oklch(0.68 0.015 250);
+  --muted-foreground: oklch(0.76 0.015 250);
   --accent: oklch(0.3 0.015 250);
   --accent-foreground: oklch(0.96 0.005 250);
   --destructive: oklch(0.63 0.22 25);
@@ -113,4 +128,33 @@
     font-family: var(--font-sans);
   }
   .leaflet-container { background: var(--color-muted); }
+}
+
+.m3-touch {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.m3-touch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.2);
+  transition: transform 350ms ease-out, opacity 250ms ease-out;
+}
+.m3-touch:active::after { opacity: 0.12; transform: scale(1); transition: transform 220ms ease-out; }
+@media (hover: hover) { .m3-touch:hover::after { opacity: 0.08; transform: scale(1); } }
+.m3-touch:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.m3-section-title { font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; color: var(--primary); }
+.m3-settings-items > label { min-height: 56px; gap: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+.m3-settings-items > label > span { min-width: 0; flex: 1; }
+.m3-settings-items > label > button { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .m3-touch::after { transition: none; transform: none; }
+  .animate-pulse { animation: none; }
 }

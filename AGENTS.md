@@ -11,6 +11,8 @@
 
 # Project rules
 
+- Material 3 surface, state-layer, and shape roles are defined in src/styles.css and shared UI primitives; navigation reserves its content height plus device safe insets. Why: screen styling and touch feedback stay consistent without changing recording logic.
+
 - Drive tracks and settings are stored on the device (localStorage via src/lib/tracks.ts), not a server. Why: the app works offline and can be exported with Capacitor.
 - GPS watching and recording state live in one shared provider (src/lib/recorder.tsx) mounted in __root. Why: recording keeps going while the user switches screens.
 - Leaflet loads only in the browser, through LazyMap. Why: Leaflet needs browser APIs and breaks server rendering.

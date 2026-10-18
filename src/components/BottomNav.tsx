@@ -12,13 +12,15 @@ const items = [
 export function BottomNav() {
   const { status } = useRecorder();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-border bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto grid max-w-lg grid-cols-4">
+    <nav aria-label="Main navigation" className="fixed inset-x-0 bottom-0 z-[1000] bg-surface-container pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="mx-auto grid h-20 max-w-lg grid-cols-4">
         {items.map(({ to, label, Icon }) => (
-          <Link key={to} to={to} activeOptions={{ exact: to === "/" }} className="relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground data-[status=active]:text-primary">
-            <Icon className="h-5 w-5" />
-            {label}
-            {to === "/" && status === "recording" && <span className="absolute right-[30%] top-2 h-2 w-2 animate-pulse rounded-full bg-destructive" />}
+          <Link key={to} to={to} activeOptions={{ exact: to === "/" }} className="m3-touch group flex min-h-12 flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground data-[status=active]:text-foreground">
+            <span className="relative flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-200 group-data-[status=active]:bg-primary-container group-data-[status=active]:text-on-primary-container">
+              <Icon className="h-6 w-6" />
+              {to === "/" && status === "recording" && <span aria-label="Recording" className="absolute right-2 top-1 h-2 w-2 animate-pulse rounded-full bg-destructive ring-2 ring-surface-container" />}
+            </span>
+            <span className="leading-4 group-data-[status=active]:font-semibold">{label}</span>
           </Link>
         ))}
       </div>

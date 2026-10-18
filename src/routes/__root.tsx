@@ -93,7 +93,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <RecorderProvider>
-        <div className="mx-auto min-h-screen max-w-lg pb-20 pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto min-h-screen max-w-lg pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-[env(safe-area-inset-top)]">
           <Outlet />
         </div>
         <BottomNav />
