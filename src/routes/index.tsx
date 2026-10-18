@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { weatherIcon, weatherLabel } from "@/lib/extras";
 import { useEffect, useMemo, useState } from "react";
@@ -43,9 +44,9 @@ function Cockpit() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col gap-3 p-4">
+    <div className="flex min-h-[calc(100dvh-80px-env(safe-area-inset-bottom,0px))] flex-col gap-3 p-4">
       <header className="flex items-center justify-between">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold uppercase tracking-wide">Drive<span className="text-primary">log</span></h1>
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold">Drive<span className="text-primary">log</span></h1>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><SatelliteDish className={`h-4 w-4 ${r.current ? "text-success" : "text-destructive"}`} />{r.current?.acc ? `±${Math.round(r.current.acc)}m` : "No fix"}</span>
           {r.wakeLock && <span className="flex items-center gap-1 text-primary"><Sun className="h-4 w-4" />Awake</span>}
@@ -53,13 +54,13 @@ function Cockpit() {
       </header>
 
       <div className="flex items-center gap-2 text-sm">
-        {r.weather && <span className="rounded-lg border border-border bg-card px-3 py-1.5">{weatherIcon(r.weather.code)} {Math.round(r.weather.temp)}° · {weatherLabel(r.weather.code)} · {Math.round(r.weather.wind)} km/h wind</span>}
+        {r.weather && <span className="rounded-full bg-surface-container px-3 py-2">{weatherIcon(r.weather.code)} {Math.round(r.weather.temp)}° · {weatherLabel(r.weather.code)} · {Math.round(r.weather.wind)} km/h wind</span>}
         <Link to="/drive" className="ml-auto flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5 font-semibold"><Car className="h-4 w-4" />Drive mode</Link>
       </div>
 
       {r.error && <p className="rounded-lg bg-destructive/15 px-3 py-2 text-sm text-destructive">{r.error}</p>}
 
-      <section className="rounded-2xl border border-border bg-card p-6 text-center">
+      <section className="rounded-3xl bg-surface-container-low shadow-tonal p-6 text-center">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Speed</p>
         <p className="font-[family-name:var(--font-mono)] text-[7rem] font-bold leading-none tabular-nums">{Math.round(speed)}</p>
         <p className="font-[family-name:var(--font-display)] text-xl uppercase text-primary">{speedUnit(u)}</p>
@@ -76,8 +77,8 @@ function Cockpit() {
 
       {r.status !== "idle" && (
         <div className="flex gap-2">
-          {r.voiceSupported && <button onClick={r.toggleVoice} className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-semibold ${r.voiceOn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{r.voiceOn ? <Mic className="h-5 w-5 animate-pulse" /> : <MicOff className="h-5 w-5" />}{r.voiceOn ? 'Listening — say "mark …"' : "Voice markers"}</button>}
-          <button onClick={() => r.addMarker()} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold"><MapPin className="h-5 w-5" />Mark ({r.markers.length})</button>
+          {r.voiceSupported && <Button variant="ghost" onClick={r.toggleVoice} className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl font-semibold ${r.voiceOn ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{r.voiceOn ? <Mic className="h-5 w-5 animate-pulse" /> : <MicOff className="h-5 w-5" />}{r.voiceOn ? 'Listening — say "mark …"' : "Voice markers"}</Button>}
+          <Button variant="ghost" onClick={() => r.addMarker()} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-secondary px-4 font-semibold"><MapPin className="h-5 w-5" />Mark ({r.markers.length})</Button>
         </div>
       )}
 
@@ -85,36 +86,36 @@ function Cockpit() {
 
       {r.status !== "idle" && <ProfileBars points={r.points} units={u} bars={30} tabs />}
 
-      <div className="sticky bottom-20 mt-auto flex gap-3 bg-background pt-2">
+      <div className="sticky bottom-[calc(80px+env(safe-area-inset-bottom,0px))] mt-auto flex gap-3 bg-background pt-2">
         {r.status === "idle" && (
-          <button onClick={r.start} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold uppercase tracking-wide text-primary-foreground active:scale-[.98]"><Play className="h-6 w-6" />Start drive</button>
+          <Button variant="ghost" onClick={r.start} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold text-primary-foreground active:scale-[.98]"><Play className="h-6 w-6" />Start drive</Button>
         )}
         {r.status === "idle" && (
-          <button onClick={r.simulate} className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 text-sm font-semibold uppercase"><FlaskConical className="h-5 w-5" />Demo</button>
+          <Button variant="ghost" onClick={r.simulate} className="flex h-16 items-center justify-center gap-2 rounded-2xl bg-secondary px-4 text-sm font-semibold"><FlaskConical className="h-5 w-5" />Demo</Button>
         )}
         {r.status === "recording" && (
-          <button onClick={r.pause} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary text-lg font-semibold uppercase"><Pause className="h-6 w-6" />Pause</button>
+          <Button variant="ghost" onClick={r.pause} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-secondary text-lg font-semibold"><Pause className="h-6 w-6" />Pause</Button>
         )}
         {r.status === "paused" && (
           <>
-            <button onClick={r.resume} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold uppercase text-primary-foreground"><Play className="h-6 w-6" />Resume</button>
-            <button onClick={() => { if (confirm("Discard this drive?")) r.discard(); }} aria-label="Discard" className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary"><X className="h-6 w-6" /></button>
+            <Button variant="ghost" onClick={r.resume} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-semibold text-primary-foreground"><Play className="h-6 w-6" />Resume</Button>
+            <Button variant="ghost" onClick={() => { if (confirm("Discard this drive?")) r.discard(); }} aria-label="Discard" className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary"><X className="h-6 w-6" /></Button>
           </>
         )}
         {r.status !== "idle" && (
-          <button onClick={onStop} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive text-lg font-semibold uppercase text-destructive-foreground"><Square className="h-5 w-5" />Stop & save</button>
+          <Button variant="ghost" onClick={onStop} className="flex h-16 flex-1 items-center justify-center gap-2 rounded-2xl bg-destructive text-lg font-semibold text-destructive-foreground"><Square className="h-5 w-5" />Stop & save</Button>
         )}
       </div>
 
       {saving && (
         <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-background/80 p-4 sm:items-center">
-          <div className="w-full max-w-md space-y-3 rounded-2xl border border-border bg-card p-4">
+          <div className="w-full max-w-md space-y-3 rounded-3xl bg-surface-container-low shadow-tonal p-4">
             <h2 className="font-semibold">Save drive</h2>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className="h-11 w-full rounded-lg border border-border bg-background px-3" />
             <textarea value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="Memo — road, weather, notes…" rows={4} className="w-full rounded-lg border border-border bg-background px-3 py-2" />
             <div className="flex gap-2">
-              <button onClick={() => setSaving(false)} className="h-11 flex-1 rounded-lg bg-secondary font-semibold">Back</button>
-              <button onClick={onSave} className="h-11 flex-1 rounded-lg bg-primary font-semibold text-primary-foreground">Save</button>
+              <Button variant="ghost" onClick={() => setSaving(false)} className="h-11 flex-1 rounded-lg bg-secondary font-semibold">Back</Button>
+              <Button variant="ghost" onClick={onSave} className="h-11 flex-1 rounded-lg bg-primary font-semibold text-primary-foreground">Save</Button>
             </div>
           </div>
         </div>
@@ -125,7 +126,7 @@ function Cockpit() {
 
 function Readout({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: "warn" | undefined }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
+    <div className="rounded-2xl bg-surface-container-low shadow-tonal px-4 py-3">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className={`font-[family-name:var(--font-mono)] text-3xl font-bold tabular-nums ${tone === "warn" ? "text-primary" : ""}`}>
         {value}{unit && <span className="ml-1 text-sm font-medium text-muted-foreground">{unit}</span>}
@@ -137,15 +138,15 @@ function Readout({ label, value, unit, tone }: { label: string; value: string; u
 function FilterStrip() {
   const r = useRecorder();
   const chip = (on: boolean, label: string, detail: string) => (
-    <div className={`rounded-lg border px-2 py-1.5 ${on ? "border-primary/50 bg-primary/10" : "border-border bg-card"}`}>
-      <p className={`text-[10px] font-semibold uppercase tracking-wider ${on ? "text-primary" : "text-muted-foreground"}`}>{label}</p>
+    <div className={`rounded-2xl px-3 py-2 ${on ? "bg-primary-container text-on-primary-container" : "bg-surface-container-low"}`}>
+      <p className={`text-xs font-semiboldr ${on ? "text-primary" : "text-muted-foreground"}`}>{label}</p>
       <p className="font-[family-name:var(--font-mono)] text-xs tabular-nums">{detail}</p>
     </div>
   );
   return (
     <section aria-label="Active GPS filters" className="space-y-1">
       <p className="flex justify-between text-[11px] uppercase tracking-[0.18em] text-muted-foreground"><span>GPS filters</span>{r.simulating && <span className="text-primary">Demo drive · 5×</span>}</p>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {chip(true, "Kalman", `${r.filt.kalman} ok · ${r.filt.jumps} jumps`)}
         {chip(r.stationary, r.stationary ? "Stopped" : "ZUPT", `${r.filt.zupt} held`)}
         {chip(true, "Grade", `${GRADE_WINDOW} m window`)}
