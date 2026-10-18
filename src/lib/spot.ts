@@ -36,5 +36,12 @@ export function spotGeoJSON(s: Spot, name: string, note: string) {
 
 export const mapsUrl = (lat: number, lon: number) => `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lon.toFixed(6)}`;
 
+/** Builds a spot from a track point index and its matching profile row. */
+export function spotAt(points: TrackPoint[], pr: { d: number; speed: number; grade: number; ele: number | null }[], i: number): Spot | null {
+  const p = points[i]; const r = pr[i];
+  if (!p || !r) return null;
+  return { lat: p.lat, lon: p.lon, ele: r.ele ?? p.ele ?? null, t: p.t, speed: r.speed, grade: r.grade, d: r.d };
+}
+
 export type { TrackPoint };
 export { haversine };

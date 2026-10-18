@@ -4,6 +4,8 @@ import { ArrowLeft, Check, Download, Mountain, Pencil, RotateCcw, Sparkles, Tras
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProfileBars } from "@/components/ProfileBars";
+import { SpotCard } from "@/components/SpotCard";
+import { indexAtDistance, nearestIndex, spotAt } from "@/lib/spot";
 import { type WeatherSample, weatherAlong, weatherIcon, weatherLabel } from "@/lib/extras";
 import { LazyMap } from "@/components/LazyMap";
 import { useRecorder } from "@/lib/recorder";
@@ -38,6 +40,7 @@ function TrackDetail() {
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
   const [hl, setHl] = useState<string | null>(null);
+  const [spot, setSpot] = useState<{ i: number; title: string } | null>(null);
   const [pin, setPin] = useState<{ key: string; lat: number; lon: number; label: string } | null>(null);
   const [wxBusy, setWxBusy] = useState(false);
   const [mEdit, setMEdit] = useState<number | null>(null);
@@ -69,10 +72,13 @@ function TrackDetail() {
     steepest: pick("steepest", (p) => Math.abs(p.grade)),
   };
   const labels: Record<string, string> = { maxSpeed: "Max speed", minEle: "Min elev", maxEle: "Max elev", steepest: "Steepest" };
-  const hi = hl != null ? targets[hl] ?? -1 : -1;
+  const hi = spot ? spot.i : hl != null ? targets[hl] ?? -1 : -1;
   const hp = hi >= 0 ? t.points[hi] : undefined;
-  const highlight = hp && hl ? { lat: hp.lat, lon: hp.lon, label: `${labels[hl]}: ${hl === "maxSpeed" ? Math.round(fmtSpeed(data.pr[hi]!.speed, u)) + " " + speedUnit(u) : hl === "steepest" ? data.pr[hi]!.grade.toFixed(1) + "%" : Math.round(fmtEle(data.pr[hi]!.ele ?? 0, u)) + " " + eleUnit(u)}` } : null;
-  const tap = (k: string) => () => { setPin(null); setHl(hl === k ? null : k); };
+  const highlight = hp && hl ? { lat: hp.lat, lon: hp.lon, label: `${labels[hl]}: ${hl === "maxSpeed" ? Math.round(fmtSpeed(data.pr[hi]!.speed, u)) + " " + speedUnit(u) : hl === "steepest" ? data.pr[hi]!.grade.toFixed(1) + "%" : Math.round(fmtEle(data.pr[hi]!.ele ?? 0, u)) + " " + eleUnit(u)}` } : hp && spot ? { lat: hp.lat, lon: hp.lon, label: spot.title } : null;
+  const openSpot = (i: number, title: string, key: string | null = null) => { if (i < 0) return; setPin(null); setHl(key); setSpot({ i, title }); };
+  const tap = (k: string) => () => { if (hl === k) { setHl(null); setSpot(null); } else openSpot(targets[k] ?? -1, labels[k]!, k); };
+  const spotData = spot ? spotAt(t.points, data.pr, spot.i) : null;
+  const saveSpot = (label: string) => { if (!spotData) return; updateTrack(t.id, { markers: [...(t.markers ?? []), { t: spotData.t, lat: spotData.lat, lon: spotData.lon, label }].sort((a, b) => a.t - b.t) }); toast.success("Saved to markers"); };
   const wx = t.weather?.samples?.length ? t.weather.samples : ([t.weather?.start, t.weather?.end].filter(Boolean) as WeatherSample[]).map((w, i) => ({ ...w, lat: w.lat ?? (i ? t.points.at(-1)! : t.points[0]!).lat, lon: w.lon ?? (i ? t.points.at(-1)! : t.points[0]!).lon }));
   const lookWeather = async () => { setWxBusy(true); const samples = await weatherAlong(t.points); setWxBusy(false); if (samples.length) { updateTrack(t.id, { weather: { start: samples[0] ?? null, end: samples.at(-1) ?? null, samples } }); toast.success(`${samples.length} weather snapshots added`); } else toast("Weather not available for this date"); };
   const saveMarker = (i: number) => { updateTrack(t.id, { markers: t.markers!.map((m, k) => (k === i ? { ...m, label: mName.trim() || m.label } : m)) }); setMEdit(null); };
@@ -106,11 +112,12 @@ function TrackDetail() {
       )}
 
       <div className="relative h-56 overflow-hidden rounded-xl border border-border">
-        <LazyMap points={t.points} follow={false} colorMode={mode} highlight={pin ?? highlight} />
+        <LazyMap points={t.points} follow={false} colorMode={mode} highlight={pin ?? highlight} onPick={(lat, lon) => openSpot(nearestIndex(t.points, lat, lon), "Picked spot")} />
         <div className="absolute right-2 top-2 z-[500] flex rounded-full bg-card/90 p-1 text-[11px] font-semibold">
           {(["elevation", "speed"] as const).map((m) => <Button variant="ghost" key={m} onClick={() => setMode(m)} className={`rounded-full px-2.5 py-1 ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{m}</Button>)}
         </div>
       </div>
+      {spotData ? <SpotCard spot={spotData} title={spot!.title} units={u} onClose={() => { setSpot(null); setHl(null); }} onSave={saveSpot} /> : <p className="text-center text-xs text-muted-foreground">Tap the map, a graph, or a stat to inspect a spot.</p>}
 
       <div className="grid grid-cols-3 gap-2">
         <Stat l="Distance" v={fmtDist(s.distance, u).toFixed(2)} un={distUnit(u)} />
@@ -124,8 +131,7 @@ function TrackDetail() {
         <Stat on={tap("steepest")} active={hl === "steepest"} l="Steepest" v={`${s.maxGrade.toFixed(1)}/${s.minGrade.toFixed(1)}`} un="%" />
       </div>
 
-      {hl && <p className="text-center text-xs text-muted-foreground">Highlighted on map and graphs. Tap the stat again to clear.</p>}
-      <ProfileBars points={t.points} units={u} bars={48} highlightD={hi >= 0 ? data.pr[hi]!.d : null} />
+      <ProfileBars points={t.points} units={u} bars={48} highlightD={hi >= 0 ? data.pr[hi]!.d : null} onPick={(m) => openSpot(indexAtDistance(data.pr, m), "Graph spot")} />
 
       <Chart title={`Slope breakdown (${distUnit(u)} per grade)`}>
         <BarChart data={data.slopes}>
