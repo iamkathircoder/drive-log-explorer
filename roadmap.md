@@ -5,6 +5,6 @@
 - [x] Test exports and restore through the app.
 
 # Material 3 UI
-- [ ] Update navigation height, selection indicators, and safe-area spacing.
-- [ ] Apply tonal surfaces, touch feedback, badges, and grouped sections.
-- [ ] Verify navigation, settings, and saved-track details.
+- [x] Update navigation height, selection indicators, and safe-area spacing.
+- [x] Apply tonal surfaces, touch feedback, badges, and grouped sections.
+- [x] Verify navigation, settings, and saved-track details.

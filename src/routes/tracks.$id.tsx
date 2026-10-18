@@ -237,12 +237,11 @@ function TrackDetail() {
   );
 }
 
-const Stat = ({ l, v, un, on, active }: { l: string; v: string; un?: string; on?: () => void; active?: boolean }) => (
-  <div role={on ? "button" : undefined} onClick={on} className={`rounded-lg border bg-card px-3 py-2 ${on ? "cursor-pointer" : ""} ${active ? "border-primary ring-1 ring-primary" : "border-border"}`}>
-    <p className="text-xs font-medium text-muted-foreground">{l}</p>
-    <p className="font-[family-name:var(--font-mono)] text-lg font-bold tabular-nums">{v}{un && <span className="ml-0.5 text-xs text-muted-foreground">{un}</span>}</p>
-  </div>
-);
+const Stat = ({ l, v, un, on, active }: { l: string; v: string; un?: string; on?: () => void; active?: boolean }) => {
+  const content = <><p className="text-xs font-medium text-muted-foreground">{l}</p><p className="flex flex-wrap items-baseline gap-x-1 font-[family-name:var(--font-mono)] text-base font-bold tabular-nums">{v}{un && <span className="text-xs font-medium text-muted-foreground">{un}</span>}</p></>;
+  const classes = `min-w-0 rounded-2xl px-3 py-3 text-left ${active ? "bg-primary-container text-on-primary-container ring-1 ring-primary" : "bg-surface-container-low shadow-tonal"}`;
+  return on ? <Button variant="ghost" aria-label={l} aria-pressed={active ?? false} onClick={on} className={`${classes} block h-auto whitespace-normal`}>{content}</Button> : <div className={classes}>{content}</div>;
+};
 const Chart = ({ title, children }: { title: string; children: React.ReactElement }) => (
   <section className="rounded-2xl bg-surface-container-low shadow-tonal p-3">
     <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{title}</h2>
